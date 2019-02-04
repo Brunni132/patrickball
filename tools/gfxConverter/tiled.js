@@ -97,14 +97,14 @@ function readTmx(tmxFileName) {
 			return resultMap;
 		};
 
-		this.readTileset = (tilesetNameInTmx, palette) => {
+		this.readTileset = (tilesetNameInTmx, palette, opts = {}) => {
 			const tilesetLayer = this.getTileset(tilesetNameInTmx);
 			const jsonImage = tilesetLayer.image[0]['$'];
 			const imagePath = path.join(path.dirname(tmxFileName), jsonImage.source);
 			const tileWidth = parseInt(tilesetLayer['$'].tilewidth);
 			const tileHeight = parseInt(tilesetLayer['$'].tileheight);
 			const tilesetName = tilesetLayer['$'].name;
-			return Tileset.fromImage(tilesetName, Texture.fromPng32(imagePath), tileWidth, tileHeight, palette);
+			return Tileset.fromImage(tilesetName, Texture.fromPng32(imagePath), tileWidth, tileHeight, palette, {tilesetWidth: opts.tilesetWidth});
 		};
 
 		this.updateTileset = (tilesetNameInTmx, tileset, opts = {}) => {

@@ -70,7 +70,7 @@ function map(name, contents, opts, cb) {
 	assert(!!currentPalette, 'cannot define map outside of palette block');
 	assert(!!currentTileset, 'cannot define map outside of tileset block');
 	if (typeof contents === 'string') contents = image(contents);
-	if (typeof opts === 'function') { cb = opts; opts = null; }
+	if (typeof opts === 'function') [cb, opts] = [opts, null];
 	opts = opts || {};
 	if (contents.type === 'blank') {
 		const { params } = contents;
@@ -107,7 +107,7 @@ function multiPalette(name, contents, cb) {
 	else {
 		assert(false, `unsupported palettes arg ${contents}`);
 	}
-	cb();
+	cb(currentPaletteMultiple);
 	currentPaletteMultiple = null;
 }
 
@@ -116,7 +116,7 @@ function palette(name, cb) {
 	assert(!currentPalette && !currentPaletteMultiple, 'nested palettes not supported');
 	currentPalette = conv.createPalette(name);
 	paletteNamed[name] = currentPalette;
-	cb();
+	cb(currentPalette);
 	currentPalette = null;
 }
 
@@ -145,7 +145,7 @@ function sprite(name, contents) {
 	spriteNamed[name] = result;
 }
 
-function tileset(name, contents, tileWidth, tileHeight, cb) {
+function tileset(name, contents, tileWidth, tileHeight, opts, cb) {
 	if (name instanceof Tileset) {
 		conv.addTileset(name);
 		tilesetNamed[name.name] = name;
@@ -156,13 +156,16 @@ function tileset(name, contents, tileWidth, tileHeight, cb) {
 	if (g_config.debug) console.log(`Processing tileset ${name}`);
 	assert(!!currentPalette, 'cannot define tileset outside of palette block');
 	if (typeof contents === 'string') contents = image(contents);
+	if (typeof opts === 'function') [cb, opts] = [opts, null];
+	opts = opts || {};
 	if (contents.type === 'blank') {
 		const { params } = contents;
 		assert(params.length === 2, 'Expects 2 params to blank(…) inside tileset');
 		result = Tileset.blank(name, tileWidth, tileHeight, params[0], params[1], currentPalette);
 	}
 	else if (contents instanceof Texture) {
-		result = Tileset.fromImage(name, contents, tileWidth, tileHeight, currentPalette);
+		const conversionOpts = { tilesetWidth: opts.tilesetWidth };
+		result = Tileset.fromImage(name, contents, tileWidth, tileHeight, currentPalette, conversionOpts);
 	}
 	else {
 		assert(false, `unsupported tileset arg ${contents}`);
@@ -171,7 +174,7 @@ function tileset(name, contents, tileWidth, tileHeight, cb) {
 	conv.addTileset(result);
 	tilesetNamed[name] = result;
 	currentTileset = result;
-	if (cb) cb();
+	if (cb) cb(result);
 	currentTileset = null;
 }
 
@@ -215,9 +218,6 @@ function tiledMap(name, fileNameBase, opts, cb) {
 
 module.exports = {
 	conv: () => conv,
-	currentPalette: () => currentPalette,
-	currentPaletteMultiple: () => currentPaletteMultiple,
-	currentTileset: () => currentTileset,
 	paletteNamed,
 	spriteNamed,
 	tilesetNamed,

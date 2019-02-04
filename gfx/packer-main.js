@@ -16,7 +16,8 @@ config({ compact: true, debug: true, disableCache: true }, () => {
 		//tmx.updateTileset('level1', tilesetNamed['level1']);
 		//tmx.writeTmx();
 
-		const til = tmx.readTileset('level1', paletteNamed['level1']);
+		// TODO Florian -- Make a nice API for that
+		const til = tmx.readTileset('level1', paletteNamed['level1'], {tilesetWidth: 12});
 		tileset(til);
 		map(tmx.readMap('level1-hi', til));
 		map(tmx.readMap('level1-lo', til));
@@ -31,7 +32,7 @@ config({ compact: true, debug: true, disableCache: true }, () => {
 		};
 		fs.writeFileSync('src/level1-objects.json', JSON.stringify(objects));
 
-		tileset('level1-more', 'gfx/level1-more.png', 32, 32);
+		tileset('level1-more', 'gfx/level1-more.png', 32, 32, {tilesetWidth: 1});
 	});
 
 	palette('level1-transparent', () => {
@@ -39,8 +40,9 @@ config({ compact: true, debug: true, disableCache: true }, () => {
 	});
 
 	palette('perso', () => {
-		tileset('perso', 'gfx/perso.png', 24, 24);
+		tileset('perso', 'gfx/perso.png', 24, 24, {tilesetWidth: 1});
 		sprite('shadow', 'gfx/shadow.png');
+		tileset('enemy1', 'gfx/enemy1.png', 24, 24, {tilesetWidth: 1});
 	});
 
 	palette('objects', () => {

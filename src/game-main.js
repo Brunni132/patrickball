@@ -44,15 +44,34 @@ class Camera {
 	}
 }
 
-class Perso {
+class Animatable {
+	constructor() {
+		this.animState = 'normal';
+		this.animCoroutine = null;
+	}
+
+	setCoroutine(coroutine) {
+		this.animCoroutine = coroutine.bind(this)();
+		console.log(`TEMP BORDEL`, this);
+	}
+
+	updateAnims() {
+		const coroutine = this.animCoroutine;
+		if (coroutine && coroutine.next().done) {
+			if (this.animCoroutine === coroutine) this.animCoroutine = null;
+		}
+	}
+}
+
+class Perso extends Animatable {
 	constructor(x, y) {
+		super();
 		this.x = x;
 		this.y = y;
 		this.z = 0;
 		this.vx = this.vy = this.vz = 0;
 		this.width = 24;
 		this.height = 12;
-		this.animationState = ['normal'];
 	}
 
 	draw() {
@@ -62,15 +81,13 @@ class Perso {
 		else if (this.vx > 0) tileNo = 2;
 		else if (this.vx <= 0) tileNo = 3;
 
-		for (let anim of this.animationState) {
-			if (anim === 'hit') tileNo = 4;
-		}
+		if (this.animState === 'hit') tileNo = 4;
 
 		const persoTile = vdp.sprite('perso').tile(tileNo);
 		const shadowTile = vdp.sprite('shadow');
 		const pos = camera.transformWithoutShake(this.x, this.y);
-		vdp.drawObject(persoTile, pos.x - persoTile.tw / 2, pos.y - persoTile.th / 2 + this.z / 2, { prio: 3 });
-		vdp.drawObject(shadowTile, pos.x - shadowTile.w / 2, pos.y, { prio: 2, transparent: true });
+		vdp.drawObject(persoTile, pos.x - 12, pos.y - 18 + this.z / 2, { prio: 3 });
+		vdp.drawObject(shadowTile, pos.x - shadowTile.w / 2, pos.y, { prio: 3, transparent: true });
 	}
 
 	get left() { return this.x - this.width / 2; }
@@ -80,13 +97,21 @@ class Perso {
 	get grounded() { return this.z >= -0.1; }
 	set left(value) { this.x = value + this.width / 2; }
 
-	takeDamage() {
-		function *changeAnimationState(self) {
-			self.animationState.push('hit');
-			for (let i = 0; i < 60; i++) yield;
-			self.animationState.splice(self.animationState.indexOf('hit'), 1);
+	stompedEnemy() {
+		this.vz = -6;
+	}
+
+	takeDamage(standardPushSideways = true, impulseZ = -8) {
+		this.vz = impulseZ;
+		if (standardPushSideways) {
+			Object.assign(this, {vz: impulseZ, vx: -4 * Math.sign(this.vx), vy: 0});
 		}
-		coroutines.push(changeAnimationState(this));
+		this.setCoroutine(function *changeAnimationState() {
+			for (let i = 0; i < 60; i++) {
+				this.animState = 'hit';
+				yield;
+			}
+		});
 	}
 
 	update() {
@@ -94,17 +119,21 @@ class Perso {
 		const targetVelocity = { x: 0, y: 0 };
 		const impulse = { x: 0, y: 0 };
 
-		if (vdp.input.isDown(vdp.input.Key.Up)) targetVelocity.y = -speed;
-		if (vdp.input.isDown(vdp.input.Key.Down)) targetVelocity.y = +speed;
-		if (vdp.input.isDown(vdp.input.Key.Left)) targetVelocity.x = -speed;
-		if (vdp.input.isDown(vdp.input.Key.Right)) targetVelocity.x = +speed;
+		if (this.animState !== 'hit') {
+			if (vdp.input.isDown(vdp.input.Key.Up)) targetVelocity.y = -speed;
+			if (vdp.input.isDown(vdp.input.Key.Down)) targetVelocity.y = +speed;
+			if (vdp.input.isDown(vdp.input.Key.Left)) targetVelocity.x = -speed;
+			if (vdp.input.isDown(vdp.input.Key.Right)) targetVelocity.x = +speed;
+			if (vdp.input.hasToggledDown(vdp.input.Key.A) && this.grounded) this.vz = jumpImpulse;
+		}
+
+		this.animState = 'normal';
 
 		// TODO Florian -- refactor to vdp.input.KeyUp
 		// if (vdp.input.hasToggledDown(vdp.input.Key.Up)) impulse.y = -impulseSpeed;
 		// if (vdp.input.hasToggledDown(vdp.input.Key.Down)) impulse.y = impulseSpeed;
 		// if (vdp.input.hasToggledDown(vdp.input.Key.Left)) impulse.x = -impulseSpeed;
 		// if (vdp.input.hasToggledDown(vdp.input.Key.Right)) impulse.x = impulseSpeed;
-		// if (vdp.input.hasToggledDown(vdp.input.Key.A) && this.grounded) this.vz = jumpImpulse;
 
 		this.vx += (targetVelocity.x - this.vx) * 0.1;
 		this.vy += (targetVelocity.y - this.vy) * 0.1;
@@ -139,6 +168,9 @@ class Perso {
 
 		// Can not go to the left
 		this.left = Math.max(camera.x, this.left);
+
+		// Coroutines take precedence over animation state
+		this.updateAnims();
 	}
 }
 
@@ -152,8 +184,8 @@ class Fire {
 
 		// Collision with character
 		if (perso.left < this.x) {
-			perso.takeDamage();
-			Object.assign(perso, { vz: -8, vx: 10, vy: 3 });
+			perso.takeDamage(false);
+			Object.assign(perso, { vx: 10, vy: 3 });
 		}
 
 		// Draw
@@ -174,8 +206,9 @@ class Fire {
 	}
 }
 
-class LiveObject {
+class LiveObject extends Animatable {
 	constructor(objDef) {
+		super();
 		this.width = parseInt(objDef.width);
 		this.height = parseInt(objDef.height);
 		this.x = parseInt(objDef.x);
@@ -238,8 +271,44 @@ class CrackledTile extends LiveObject {
 		}
 
 		if (this.explosionAnimation >= 3 && this.collidesWith(perso, -8)) {
-			perso.takeDamage();
-			Object.assign(perso, { vz: -8, vx: -4 * Math.sign(perso.vx), vy: -4 });
+			perso.takeDamage(true);
+		}
+	}
+}
+
+class Enemy1 extends LiveObject {
+	constructor(objDef, props) {
+		super(objDef);
+		this.width = this.height = 24;
+		this.followPlayer = props.followPlayer;
+	}
+
+	draw() {
+		let tileNo = (frameNo / 16) % 3;
+		const pos = camera.transform(this.x, this.y);
+		if (this.animState !== 'blinking' || frameNo % 2) {
+			vdp.drawObject(vdp.sprite('enemy1').tile(tileNo), pos.x, pos.y, {prio: 2});
+		}
+	}
+
+	update(perso) {
+		this.updateAnims();
+		if (this.followPlayer && camera.isVisible(this)) {
+			this.x -= Math.sign(this.x - perso.x) * 0.25;
+			this.y -= Math.sign(this.y - perso.y) * 0.25;
+		}
+		if (this.collidesWith(perso, -4)) {
+			if (perso.z < 0) {
+				perso.stompedEnemy();
+				this.setCoroutine(function*() {
+					for (let i = 0; i < 30; i++) {
+						this.animState = 'blinking';
+						yield;
+					}
+					this.destroy();
+				});
+			}
+			else perso.takeDamage();
 		}
 	}
 }
@@ -277,9 +346,11 @@ function prepareObjects() {
 		const obj = objectDefinitions.objects[i];
 		if (!obj['$'].gid) continue;
 		const tileNo = parseInt(obj['$'].gid - objectDefinitions.firstTile);
-		if (tileNo === 2) {
-			addObject(new CrackledTile(obj['$'], obj.properties));
-		}
+		const properties = obj.properties || {};
+		if (tileNo === 2) addObject(new CrackledTile(obj['$'], properties));
+		else if (tileNo === 3) addObject(new Enemy1(obj['$'], properties));
+		else if (tileNo === 4) addObject(new Enemy1(obj['$'], Object.assign({ followPlayer: true }, properties)));
+		else throw new Error(`Unsupported object type ${tileNo + objectDefinitions.firstTile}`);
 	}
 }
 
@@ -329,8 +400,8 @@ let coroutines = [];
 
 function *main(_vdp) { vdp = _vdp;
 	const fireLimitPos = 960;
-	// const perso = new Perso(128, 128);
-	const perso = new Perso(960, 500);
+	 //const perso = new Perso(128, 128);
+	const perso = new Perso(1400, 500);
 	const fire = new Fire();
 	let subscene = 0;
 

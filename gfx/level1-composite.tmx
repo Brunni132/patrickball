@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.2" tiledversion="1.2.1" orientation="orthogonal" renderorder="right-down" width="64" height="24" tilewidth="32" tileheight="32" infinite="0" nextlayerid="5" nextobjectid="9">
+<map version="1.0" tiledversion="1.1.5" orientation="orthogonal" renderorder="right-down" width="64" height="24" tilewidth="32" tileheight="32" infinite="0" nextobjectid="18">
  <tileset firstgid="1" name="level1" tilewidth="32" tileheight="32" tilecount="80" columns="16">
   <image source="level1-til.png" width="512" height="160"/>
  </tileset>
- <tileset firstgid="81" name="objects" tilewidth="32" tileheight="32" tilecount="4" columns="1">
-  <image source="objects.png" width="32" height="128"/>
+ <tileset firstgid="81" name="objects" tilewidth="32" tileheight="32" tilecount="5" columns="1">
+  <image source="objects.png" width="32" height="160"/>
  </tileset>
- <layer id="1" name="level1-lo" width="64" height="24">
+ <layer name="level1-lo" width="64" height="24">
   <data encoding="csv">
 1,2,3,4,5,3,4,5,3,4,5,3,4,5,3,4,5,3,4,5,3,4,5,3,4,5,3,4,5,3,4,5,6,4,5,3,4,5,3,4,5,3,4,5,3,4,7,3,4,5,3,4,5,3,4,5,3,4,5,3,8,9,10,11,
 12,13,14,15,16,17,18,16,17,18,16,17,18,16,17,18,16,17,18,16,17,18,16,17,18,16,17,18,16,17,18,16,17,18,16,17,18,16,17,18,16,17,18,16,17,18,16,17,18,16,17,18,16,17,18,16,17,18,16,17,19,13,20,12,
@@ -34,7 +34,7 @@
 12,13,20,12,13,20,12,13,20,12,13,20,12,13,20,12,13,20,12,13,20,12,13,20,12,13,20,12,13,20,12,13,20,12,13,20,12,13,20,12,13,20,12,13,20,12,13,20,12,13,20,12,13,20,12,13,20,12,13,20,12,13,20,12
 </data>
  </layer>
- <layer id="2" name="level1-hi" width="64" height="24">
+ <layer name="level1-hi" width="64" height="24">
   <data encoding="csv">
 37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,
 37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,
@@ -62,7 +62,7 @@
 37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37,37
 </data>
  </layer>
- <layer id="3" name="collisions" width="64" height="24">
+ <layer name="collisions" width="64" height="24">
   <data encoding="csv">
 0,0,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,0,0,0,
 0,0,0,0,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,82,0,0,0,
@@ -90,7 +90,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="4" name="objects">
+ <objectgroup name="objects">
   <object id="4" x="0" y="0">
    <polygon points="0,0 960,480 1952,480 1952,0"/>
   </object>
@@ -102,5 +102,7 @@
     <property name="vx" type="int" value="0"/>
    </properties>
   </object>
+  <object id="13" gid="84" x="1441" y="566" width="32" height="32"/>
+  <object id="15" gid="85" x="1547" y="561" width="32" height="32"/>
  </objectgroup>
 </map>

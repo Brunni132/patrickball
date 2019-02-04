@@ -154,14 +154,20 @@ class Tileset {
 	 * @param tileWidth {number}
 	 * @param tileHeight {number}
 	 * @param palette {Palette}
+	 * @param [opts] {Object}
+	 * @param [opts.tilesetWidth] {number} override the width of the tileset (else it's deducted from the source texture
+	 * size)
 	 * @returns {Tileset}
 	 */
-	static fromImage(name, texture, tileWidth, tileHeight, palette) {
+	static fromImage(name, texture, tileWidth, tileHeight, palette, opts = {}) {
 		assert(texture.width % tileWidth === 0 || texture.height % tileHeight === 0, `Undividable tileset ${texture.width}x${texture.height} by ${tileWidth}x${tileHeight}`);
 
 		const tilesWide = Math.ceil(texture.width / tileWidth);
 		const tilesTall = Math.ceil(texture.height / tileHeight);
-		const result = new Tileset(name, tileWidth, tileHeight, tilesWide, tilesTall, palette);
+		const totalTiles = tilesWide * tilesTall;
+		const tilesetWidth = opts.tilesetWidth || tilesWide;
+		const tilesetHeight = opts.tilesetWidth ? Math.ceil(totalTiles / tilesetWidth) : tilesTall;
+		const result = new Tileset(name, tileWidth, tileHeight, tilesetWidth, tilesetHeight, palette);
 
 		for (let y = 0; y < tilesTall; y++) {
 			for (let x = 0; x < tilesWide; x++) {
