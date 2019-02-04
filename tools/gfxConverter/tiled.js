@@ -88,7 +88,7 @@ function readTmx(tmxFileName) {
 			let i = 0;
 			for (let y = 0; y < mapHeight; y++) {
 				for (let x = 0; x < mapWidth; x++) {
-					const tileNo = layerData[i++] - tilesetFirstTile;
+					const tileNo = Math.max(0, layerData[i++] - tilesetFirstTile);
 					const paletteFlags = tileset.tiles[tileNo].paletteIndex << 12;
 					resultMap.setTile(x, y, tileNo | paletteFlags);
 				}
@@ -122,12 +122,14 @@ function readTmx(tmxFileName) {
 			});
 			destImageTrueColor.writeToPng(path.join(path.dirname(tmxFileName), tilesetFileName));
 
-			Object.assign(tilesetLayer['$'], {
-				"firstgid": tilesetFirstTile,
-				"name": tileset.name,
-				"tilewidth": tileset.tileWidth,
-				"tileheight": tileset.tileHeight
-			});
+			if (opts.alsoUpdateInTmx) {
+				Object.assign(tilesetLayer['$'], {
+					"firstgid": tilesetFirstTile,
+					"name": tileset.name,
+					"tilewidth": tileset.tileWidth,
+					"tileheight": tileset.tileHeight
+				});
+			}
 		};
 
 		this.updateMap = (layerName, map, opts = {}) => {

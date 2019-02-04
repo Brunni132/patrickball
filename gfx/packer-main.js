@@ -1,4 +1,5 @@
-const { addColors, blank, config, image,map,multiPalette,palette,sprite,tileset, readTmx,tiledMap, paletteNamed, mapNamed, tilesetNamed, conv } = require('../tools/gfxConverter/dsl');
+const {Palette} = require("../tools/gfxConverter/palette");
+const { addColors, blank, config, image,map,multiPalette,palette,sprite,tileset, readTmx,tiledMap, paletteNamed, mapNamed, tilesetNamed } = require('../tools/gfxConverter/dsl');
 
 
 
@@ -16,13 +17,13 @@ config({ compact: true, debug: true, disableCache: true }, () => {
 		//tmx.updateTileset('level1', tilesetNamed['level1']);
 		//tmx.writeTmx();
 
-		//tiledMap('level1-lo', 'gfx/level1-lo', { tileWidth: 32, tileHeight: 32, tilesetWidth: 16, tilesetHeight: 16 });
-		//tiledMap('level1-hi', 'gfx/level1-hi', { tileWidth: 32, tileHeight: 32, tilesetWidth: 16, tilesetHeight: 16 });
-
 		const til = tmx.readTileset('level1', paletteNamed['level1']);
 		tileset(til);
 		map(tmx.readMap('level1-hi', til));
 		map(tmx.readMap('level1-lo', til));
+
+		const collisionTil = tmx.readTileset('objects', new Palette('temp'));
+		map(tmx.readMap('collisions', collisionTil));
 	});
 
 	palette('level1-transparent', () => {
