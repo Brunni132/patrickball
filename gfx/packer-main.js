@@ -1,7 +1,6 @@
-const {Palette} = require("../tools/gfxConverter/palette");
 const { addColors, blank, config, image,map,multiPalette,palette,sprite,tileset, readTmx,tiledMap, paletteNamed, mapNamed, tilesetNamed } = require('../tools/gfxConverter/dsl');
-
-
+const {Palette} = require("../tools/gfxConverter/palette");
+const fs = require('fs');
 
 
 // TODO Florian -- remove disableCache option, dangerous
@@ -24,6 +23,15 @@ config({ compact: true, debug: true, disableCache: true }, () => {
 
 		const collisionTil = tmx.readTileset('objects', new Palette('temp'));
 		map(tmx.readMap('collisions', collisionTil));
+
+
+		const objects = {
+			objects: tmx.json.map.objectgroup[0].object,
+			firstTile: parseInt(tmx.getTileset('objects')['$'].firstgid)
+		};
+		fs.writeFileSync('src/level1-objects.json', JSON.stringify(objects));
+
+		tileset('level1-more', 'gfx/level1-more.png', 32, 32);
 	});
 
 	palette('level1-transparent', () => {
@@ -31,7 +39,11 @@ config({ compact: true, debug: true, disableCache: true }, () => {
 	});
 
 	palette('perso', () => {
-		tileset('perso', 'gfx/perso.png', 40, 40);
+		tileset('perso', 'gfx/perso.png', 24, 24);
 		sprite('shadow', 'gfx/shadow.png');
+	});
+
+	palette('objects', () => {
+		sprite('flame', 'gfx/flame.png');
 	});
 });

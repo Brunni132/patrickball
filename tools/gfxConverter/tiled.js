@@ -56,6 +56,7 @@ const xml2js = require('xml2js');
 function readTmx(tmxFileName) {
 	new xml2js.Parser().parseString(fs.readFileSync(tmxFileName), (err, result) => {
 		const json = result.map;
+		this.json = result;
 
 		this.getTileset = (name) => {
 			for (let i = 0; i < json.tileset.length; i++) {

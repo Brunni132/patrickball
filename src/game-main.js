@@ -1,5 +1,7 @@
 import {startGame, VDP} from '../lib/vdp-lib';
+const objectDefinitions = require('./level1-objects.json');
 
+const TIMESTEP = 1 / 60;
 const GRAVITY = 0.3;
 
 class Camera {
@@ -23,6 +25,13 @@ class Camera {
 		this.y = Math.min(map.height * map.tileHeight - vdp.screenHeight,  Math.max(0, this.y));
 	}
 
+	isVisible(object) {
+		const pos = this.transform(object.x, object.y);
+		return pos.x + object.width >= 0 && pos.y + object.height >= 0 &&
+			pos.x < vdp.screenWidth && pos.y < vdp.screenHeight;
+	}
+
+
 	get xFinal() { return this.x + this.shakeX; }
 	get yFinal() { return this.y + this.shakeY; }
 
@@ -42,7 +51,8 @@ class Perso {
 		this.z = 0;
 		this.vx = this.vy = this.vz = 0;
 		this.width = 24;
-		this.height = 24;
+		this.height = 12;
+		this.animationState = ['normal'];
 	}
 
 	draw() {
@@ -51,6 +61,10 @@ class Perso {
 		else if (this.vy <= 0 && Math.abs(this.vy) > Math.abs(this.vx)) tileNo = 1;
 		else if (this.vx > 0) tileNo = 2;
 		else if (this.vx <= 0) tileNo = 3;
+
+		for (let anim of this.animationState) {
+			if (anim === 'hit') tileNo = 4;
+		}
 
 		const persoTile = vdp.sprite('perso').tile(tileNo);
 		const shadowTile = vdp.sprite('shadow');
@@ -67,25 +81,30 @@ class Perso {
 	set left(value) { this.x = value + this.width / 2; }
 
 	takeDamage() {
-
+		function *changeAnimationState(self) {
+			self.animationState.push('hit');
+			for (let i = 0; i < 60; i++) yield;
+			self.animationState.splice(self.animationState.indexOf('hit'), 1);
+		}
+		coroutines.push(changeAnimationState(this));
 	}
 
 	update() {
-		const speed = 2, impulseSpeed = 4, jumpImpulse = -6;
+		const speed = 2, impulseSpeed = 3, jumpImpulse = -6;
 		const targetVelocity = { x: 0, y: 0 };
 		const impulse = { x: 0, y: 0 };
 
-		// if (vdp.input.isDown(vdp.input.Key.Up)) targetVelocity.y = -speed;
-		// if (vdp.input.isDown(vdp.input.Key.Down)) targetVelocity.y = +speed;
-		// if (vdp.input.isDown(vdp.input.Key.Left)) targetVelocity.x = -speed;
-		// if (vdp.input.isDown(vdp.input.Key.Right)) targetVelocity.x = +speed;
+		if (vdp.input.isDown(vdp.input.Key.Up)) targetVelocity.y = -speed;
+		if (vdp.input.isDown(vdp.input.Key.Down)) targetVelocity.y = +speed;
+		if (vdp.input.isDown(vdp.input.Key.Left)) targetVelocity.x = -speed;
+		if (vdp.input.isDown(vdp.input.Key.Right)) targetVelocity.x = +speed;
 
 		// TODO Florian -- refactor to vdp.input.KeyUp
-		if (vdp.input.hasToggledDown(vdp.input.Key.Up)) impulse.y = -impulseSpeed;
-		if (vdp.input.hasToggledDown(vdp.input.Key.Down)) impulse.y = impulseSpeed;
-		if (vdp.input.hasToggledDown(vdp.input.Key.Left)) impulse.x = -impulseSpeed;
-		if (vdp.input.hasToggledDown(vdp.input.Key.Right)) impulse.x = impulseSpeed;
-		if (vdp.input.hasToggledDown(vdp.input.Key.A) && this.grounded) this.vz = jumpImpulse;
+		// if (vdp.input.hasToggledDown(vdp.input.Key.Up)) impulse.y = -impulseSpeed;
+		// if (vdp.input.hasToggledDown(vdp.input.Key.Down)) impulse.y = impulseSpeed;
+		// if (vdp.input.hasToggledDown(vdp.input.Key.Left)) impulse.x = -impulseSpeed;
+		// if (vdp.input.hasToggledDown(vdp.input.Key.Right)) impulse.x = impulseSpeed;
+		// if (vdp.input.hasToggledDown(vdp.input.Key.A) && this.grounded) this.vz = jumpImpulse;
 
 		this.vx += (targetVelocity.x - this.vx) * 0.1;
 		this.vy += (targetVelocity.y - this.vy) * 0.1;
@@ -129,24 +148,12 @@ class Fire {
 	}
 
 	update(perso) {
-		if (frameNo % 8 === 0) {
-			const firePal = vdp.readPalette('level1-transparent');
-			const fireCol = ['#400', '#600', '#800', '#a00', '#c00', '#e00', '#f00', '#e00', '#c00', '#a00', '#800', '#600', '#400'];
-			const it = frameNo / 8;
-			if (frameNo % 16 === 0) {
-				[firePal.array[2], firePal.array[3], firePal.array[4]] = [firePal.array[3], firePal.array[4], firePal.array[2]];
-			}
-			firePal.array[1] = vdp.color.make(fireCol[it % fireCol.length]);
-			vdp.writePalette('level1-transparent', firePal);
-		}
 		this.x += 0.5;
 
 		// Collision with character
 		if (perso.left < this.x) {
 			perso.takeDamage();
-			perso.vz = -8;
-			perso.vx = 10;
-			perso.vy = 3;
+			Object.assign(perso, { vz: -8, vx: 10, vy: 3 });
 		}
 
 		// Draw
@@ -160,8 +167,79 @@ class Fire {
 
 		// Do not draw outside of the screen since we're affecting the shadow params
 		if (x + scaleX > 0) {
-			vdp.configObjectTransparency({op: 'add', blendDst: '#444', blendSrc: '#fff'});
-			vdp.drawObject('firewall', x, -15, {prio: 4, transparent: true, width: scaleX, height: 290 + scaleY});
+			vdp.configObjectTransparency({op: 'add', blendDst: '#888', blendSrc: '#fff'});
+			vdp.drawObject('firewall', x, -15, {prio: 8, transparent: true, width: scaleX, height: 290 + scaleY});
+			// vdp.drawObject('firewall', x + scaleX - vdp.sprite('firewall').w, -15, {prio: 4, transparent: true, height: 290 + scaleY});
+		}
+	}
+}
+
+class LiveObject {
+	constructor(objDef) {
+		this.width = parseInt(objDef.width);
+		this.height = parseInt(objDef.height);
+		this.x = parseInt(objDef.x);
+		this.y = parseInt(objDef.y) - this.height;
+	}
+
+	collidesWith(perso, margin = 0) {
+		const z = 0, depth = 2;
+		return perso.right + margin >= this.left && perso.left - margin < this.right &&
+			perso.bottom + margin >= this.top && perso.top - margin < this.bottom &&
+			Math.abs(perso.z - 0) <  depth;
+	}
+
+	destroy() {
+		const thisIndex = liveObjects.indexOf(this);
+		liveObjects.splice(thisIndex, 1);
+	}
+
+	draw() {}
+
+	get left() { return this.x; }
+	get right() { return this.x + this.width; }
+	get top() { return this.y; }
+	get bottom() { return this.y + this.height; }
+
+	update(perso) {}
+}
+
+class CrackledTile extends LiveObject {
+	constructor(objDef, props) {
+		super(objDef);
+		this.explosionAnimation = 0;
+	}
+
+	draw() {
+		const pos = camera.transform(this.x, this.y);
+
+		if (this.explosionAnimation < 3) {
+			const animTile = Math.min(2, Math.ceil(this.explosionAnimation));
+			vdp.drawObject(vdp.sprite('level1-more').tile(animTile), pos.x, pos.y, {prio: 2});
+		}
+		else {
+			const animSpeed = 50;
+			const height = Math.min(192, (this.explosionAnimation - 3) * animSpeed);
+			const flameTop = vdp.sprite('flame').offsetted(0, 0, 32, 25);
+			const flameBody = vdp.sprite('flame').offsetted(0, 25, 32, 48 - 25);
+			const flameBodyHeight = Math.max(0, height - 25);
+			const width = 32 + Math.sin(this.explosionAnimation * 100) * 5;
+			vdp.drawObject(flameTop, pos.x - (width - 32) / 2, pos.y + 32 - height, {prio: 4, width, height: Math.min(25, height) });
+			vdp.drawObject(flameBody, pos.x - (width - 32) / 2, pos.y + 32 - flameBodyHeight, {prio: 4, width, height: flameBodyHeight });
+		}
+	}
+
+	update(perso) {
+		if (this.explosionAnimation > 0) {
+			this.explosionAnimation += TIMESTEP * 8;
+		}
+		else if (perso.right >= this.left - 48) {
+			this.explosionAnimation = TIMESTEP * 8;
+		}
+
+		if (this.explosionAnimation >= 3 && this.collidesWith(perso, -8)) {
+			perso.takeDamage();
+			Object.assign(perso, { vz: -8, vx: -4 * Math.sign(perso.vx), vy: -4 });
 		}
 	}
 }
@@ -184,6 +262,27 @@ class Map {
 	}
 }
 
+function addObject(obj) {
+	liveObjects.push(obj);
+}
+
+function drawObjects() {
+	for (let i = 0; i < liveObjects.length; i++) {
+		if (camera.isVisible(liveObjects[i])) liveObjects[i].draw();
+	}
+}
+
+function prepareObjects() {
+	for (let i = 0; i < objectDefinitions.objects.length; i++) {
+		const obj = objectDefinitions.objects[i];
+		if (!obj['$'].gid) continue;
+		const tileNo = parseInt(obj['$'].gid - objectDefinitions.firstTile);
+		if (tileNo === 2) {
+			addObject(new CrackledTile(obj['$'], obj.properties));
+		}
+	}
+}
+
 function shakeScreen() {
 	if (frameNo % 3 === 0) {
 		camera.shakeX = Math.random() * 3 - 1;
@@ -191,16 +290,47 @@ function shakeScreen() {
 	}
 }
 
+function updateObjects(perso) {
+	for (let i = liveObjects.length - 1; i >= 0; i--) {
+		liveObjects[i].update(perso);
+	}
+}
+
+function rotatePalettes() {
+	// Fire
+	if (frameNo % 4 === 0) {
+		const firePal = vdp.readPalette('level1-transparent');
+		// const fireCol = ['#400', '#600', '#800', '#a00', '#c00', '#e00', '#f00', '#e00', '#c00', '#a00', '#800', '#600', '#400'];
+		const it = (frameNo / 4) % 8;
+		// if (frameNo % 16 === 0) {
+		// 	[firePal.array[2], firePal.array[3], firePal.array[4]] = [firePal.array[3], firePal.array[4], firePal.array[2]];
+		// }
+		// firePal.array[1] = vdp.color.make(fireCol[it % fireCol.length]);
+		firePal.array[1] = vdp.color.make(255, 160 + it * 16, 0);
+		firePal.array[2] = vdp.color.make(160 + it * 8, 0, 0);
+		firePal.array[3] = vdp.color.make(255, 64 + it * 8, 0);
+		vdp.writePalette('level1-transparent', firePal);
+	}
+
+	if (frameNo % 4 === 0) {
+		const pal = vdp.readPalette('objects');
+		[pal.array[1], pal.array[2], pal.array[3]] = [pal.array[2], pal.array[3], pal.array[1]];
+		vdp.writePalette('objects', pal);
+	}
+}
 
 /** @type {VDP} */
 let vdp;
 let frameNo;
 let camera = new Camera();
 let map;
+let liveObjects = [];
+let coroutines = [];
 
 function *main(_vdp) { vdp = _vdp;
 	const fireLimitPos = 960;
-	const perso = new Perso(128, 128);
+	// const perso = new Perso(128, 128);
+	const perso = new Perso(960, 500);
 	const fire = new Fire();
 	let subscene = 0;
 
@@ -208,12 +338,17 @@ function *main(_vdp) { vdp = _vdp;
 	map = new Map('level1');
 	frameNo = 0;
 
+	prepareObjects();
+
 	while (true) {
 		// Default config, may be overriden
 		vdp.configObjectTransparency({ op: 'add', blendDst: '#888', blendSrc: '#fff'});
 
 		perso.update();
 		camera.update(perso);
+		updateObjects(perso);
+		rotatePalettes();
+		for (let i = 0; i < coroutines.length; i++) coroutines[i].next();
 
 		if (subscene === 0) {
 			shakeScreen();
@@ -224,15 +359,18 @@ function *main(_vdp) { vdp = _vdp;
 			}
 		}
 		else if (subscene === 1) {
-			camera.minimumX = Math.min(fireLimitPos, camera.x);
+			// Close the view
+			camera.minimumX = Math.min(fireLimitPos, camera.x + 1);
+			fire.x = Math.min(fire.x + 4, fireLimitPos - 35);
+			if (camera.x < fireLimitPos) shakeScreen();
 		}
 
 		const bgPos = camera.transform(0, 0);
 		vdp.drawBackgroundTilemap('level1-lo', { scrollX: -bgPos.x, scrollY: -bgPos.y, prio: 1 });
 		vdp.drawBackgroundTilemap('level1-hi', { scrollX: -bgPos.x, scrollY: -bgPos.y, prio: 13 });
 		perso.draw();
+		drawObjects();
 
-		fire.x = Math.min(fire.x, fireLimitPos - 35);
 		fire.update(perso);
 
 		frameNo++;
