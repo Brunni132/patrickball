@@ -17,8 +17,7 @@
   "scripts": {
     "build": "webpack --config webpack.prod.js",
     "dev-server": "webpack-dev-server --config webpack.dev.js",
-    "pack-gfx": "node tools/gfxConverter/executable.js --convert-only",
-    "pack-gfx-js": "node gfx/packer-main.js",
+    "pack-gfx": "node tools/gfxConverter/executable.js no-server",
     "pack-and-serve": "node tools/gfxConverter/executable.js"
   },
   "author": "",

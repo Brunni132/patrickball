@@ -1,10 +1,8 @@
-const { addColors, blank, config, image,map,multiPalette,palette,sprite,tileset, readTmx,tiledMap, paletteNamed, mapNamed, tilesetNamed } = require('../tools/gfxConverter/dsl');
-const {Palette} = require("../tools/gfxConverter/palette");
+const { addColors, blank, config, image,map,multiPalette,palette,sprite,tileset, readTmx,tiledMap, global } = require('../tools/gfxConverter/dsl.js');
+const {Palette} = require('../tools/gfxConverter/palette.js');
 const fs = require('fs');
 
-
-// TODO Florian -- remove disableCache option, dangerous
-config({ compact: true, debug: true, disableCache: true }, () => {
+config({ compact: true, debug: true }, () => {
 	palette('level1', () => {
 		const tmx = readTmx('gfx/level1-composite.tmx');
 		//tileset('level1', blank(16, 16), 32, 32, () => {
@@ -17,7 +15,7 @@ config({ compact: true, debug: true, disableCache: true }, () => {
 		//tmx.writeTmx();
 
 		// TODO Florian -- Make a nice API for that
-		const til = tmx.readTileset('level1', paletteNamed['level1'], {tilesetWidth: 12});
+		const til = tmx.readTileset('level1', global.paletteNamed['level1'], {tilesetWidth: 12});
 		tileset(til);
 		map(tmx.readMap('level1-hi', til));
 		map(tmx.readMap('level1-lo', til));

@@ -85,13 +85,11 @@ class MasterPack {
 	 * Allows to spare memory and colors.
 	 * @param [opts.hiColorMode=false] {boolean} if true, colors are 8 bits per pixel and palettes have 256 colors;
 	 * if false they are 4 bits per pixel and palettes have 16 colors.
-	 * @param [opts.disableCache] {boolean}
  	 */
 	constructor(opts) {
 		g_config.hiColorMode = opts.hasOwnProperty('hiColorMode') ? opts.hiColorMode : false;
 		g_config.paletteBpp = opts.hasOwnProperty('_paletteBpp') ? opts._paletteBpp : 4;
 		g_config.debug = !!opts.debug;
-		g_config.disableCache = !!opts.disableCache;
 
 		if (!opts.compact) {
 			/** @type {Texture} */

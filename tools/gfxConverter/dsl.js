@@ -12,10 +12,10 @@ let conv = null;
 let currentPalette = null;
 let currentPaletteMultiple = null;
 let currentTileset = null;
-const paletteNamed = {};
-const spriteNamed = {};
-const tilesetNamed = {};
-const mapNamed = {};
+let paletteNamed = {};
+let spriteNamed = {};
+let tilesetNamed = {};
+let mapNamed = {};
 
 // System-only
 function checkConv() {
@@ -216,12 +216,21 @@ function tiledMap(name, fileNameBase, opts, cb) {
 	if (cb) cb(map);
 }
 
+function _restart() {
+	conv = null;
+	currentPalette = null;
+	currentPaletteMultiple = null;
+	currentTileset = null;
+	paletteNamed = {};
+	spriteNamed = {};
+	tilesetNamed = {};
+	mapNamed = {};
+}
+
 module.exports = {
-	conv: () => conv,
-	paletteNamed,
-	spriteNamed,
-	tilesetNamed,
-	mapNamed,
+	get global() {
+		return { conv, paletteNamed, spriteNamed, tilesetNamed, mapNamed }
+	},
 	addColors,
 	blank,
 	config,
@@ -232,5 +241,6 @@ module.exports = {
 	readTmx: (tmxFileName) => new readTmx(tmxFileName),
 	sprite,
 	tileset,
-	tiledMap
+	tiledMap,
+	_restart
 };

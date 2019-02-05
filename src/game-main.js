@@ -1,4 +1,5 @@
 import {startGame, VDP} from '../lib/vdp-lib';
+import {Coroutines} from "./utils";
 const objectDefinitions = require('./level1-objects.json');
 
 const TIMESTEP = 1 / 60;
@@ -44,28 +45,8 @@ class Camera {
 	}
 }
 
-class Animatable {
-	constructor() {
-		this.animState = 'normal';
-		this.animCoroutine = null;
-	}
-
-	setCoroutine(coroutine) {
-		this.animCoroutine = coroutine.bind(this)();
-		console.log(`TEMP BORDEL`, this);
-	}
-
-	updateAnims() {
-		const coroutine = this.animCoroutine;
-		if (coroutine && coroutine.next().done) {
-			if (this.animCoroutine === coroutine) this.animCoroutine = null;
-		}
-	}
-}
-
-class Perso extends Animatable {
+class Perso {
 	constructor(x, y) {
-		super();
 		this.x = x;
 		this.y = y;
 		this.z = 0;
@@ -101,16 +82,13 @@ class Perso extends Animatable {
 		this.vz = -6;
 	}
 
-	takeDamage(standardPushSideways = true, impulseZ = -8) {
-		this.vz = impulseZ;
-		if (standardPushSideways) {
+	takeDamage(pushSideways = true, impulseZ = -8) {
+		if (pushSideways) {
 			Object.assign(this, {vz: impulseZ, vx: -4 * Math.sign(this.vx), vy: 0});
 		}
-		this.setCoroutine(function *changeAnimationState() {
-			for (let i = 0; i < 60; i++) {
-				this.animState = 'hit';
-				yield;
-			}
+		coroutines.replace(this, 'anim', frame => {
+			this.animState = 'hit';
+			return frame < 60;
 		});
 	}
 
@@ -168,9 +146,6 @@ class Perso extends Animatable {
 
 		// Can not go to the left
 		this.left = Math.max(camera.x, this.left);
-
-		// Coroutines take precedence over animation state
-		this.updateAnims();
 	}
 }
 
@@ -185,7 +160,7 @@ class Fire {
 		// Collision with character
 		if (perso.left < this.x) {
 			perso.takeDamage(false);
-			Object.assign(perso, { vx: 10, vy: 3 });
+			Object.assign(perso, { vx: 10, vy: 3, vz: -10 });
 		}
 
 		// Draw
@@ -206,9 +181,8 @@ class Fire {
 	}
 }
 
-class LiveObject extends Animatable {
+class LiveObject {
 	constructor(objDef) {
-		super();
 		this.width = parseInt(objDef.width);
 		this.height = parseInt(objDef.height);
 		this.x = parseInt(objDef.x);
@@ -271,7 +245,7 @@ class CrackledTile extends LiveObject {
 		}
 
 		if (this.explosionAnimation >= 3 && this.collidesWith(perso, -8)) {
-			perso.takeDamage(true);
+			perso.takeDamage();
 		}
 	}
 }
@@ -292,7 +266,6 @@ class Enemy1 extends LiveObject {
 	}
 
 	update(perso) {
-		this.updateAnims();
 		if (this.followPlayer && camera.isVisible(this)) {
 			this.x -= Math.sign(this.x - perso.x) * 0.25;
 			this.y -= Math.sign(this.y - perso.y) * 0.25;
@@ -300,15 +273,19 @@ class Enemy1 extends LiveObject {
 		if (this.collidesWith(perso, -4)) {
 			if (perso.z < 0) {
 				perso.stompedEnemy();
-				this.setCoroutine(function*() {
-					for (let i = 0; i < 30; i++) {
+				this.update = () => {};
+				coroutines.replace(this, 'anim', frame => {
+					if (frame < 30) {
 						this.animState = 'blinking';
-						yield;
+						return true;
 					}
 					this.destroy();
+					return false;
 				});
 			}
-			else perso.takeDamage();
+			else {
+				perso.takeDamage();
+			}
 		}
 	}
 }
@@ -396,7 +373,7 @@ let frameNo;
 let camera = new Camera();
 let map;
 let liveObjects = [];
-let coroutines = [];
+let coroutines = new Coroutines();
 
 function *main(_vdp) { vdp = _vdp;
 	const fireLimitPos = 960;
@@ -419,7 +396,8 @@ function *main(_vdp) { vdp = _vdp;
 		camera.update(perso);
 		updateObjects(perso);
 		rotatePalettes();
-		for (let i = 0; i < coroutines.length; i++) coroutines[i].next();
+		// Coroutines take precedence on previous handlers (including objects)
+		coroutines.updateAll();
 
 		if (subscene === 0) {
 			shakeScreen();
