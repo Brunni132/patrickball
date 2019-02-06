@@ -224,17 +224,17 @@ class MasterPack {
 		// Write all textures
 		console.log('Writing game data…');
 		if (!fs.existsSync('build')) fs.mkdirSync('build');
-		fs.writeFileSync('build/game.json', JSON.stringify(resultJson), function(err) {
+		fs.writeFileSync('../build/game.json', JSON.stringify(resultJson), function(err) {
 				if (err) throw err;
 				console.log('complete');
 			}
 		);
-		this.mapTex.writeToPng('build/maps.png');
-		this.spriteTex.writeToPng('build/sprites.png');
-		this.paletteTex.writeToPng('build/palettes.png');
+		this.mapTex.writeToPng('../build/maps.png');
+		this.spriteTex.writeToPng('../build/sprites.png');
+		this.paletteTex.writeToPng('../build/palettes.png');
 		if (writeSample) {
 			console.log('Writing sample.png (optional & long, consider setting debug: false in gfx/packer-main.js)');
-			this.writeSampleImage(resultJson, 'sample.png');
+			this.writeSampleImage(resultJson, '../sample.png');
 		}
 	}
 

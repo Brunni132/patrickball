@@ -1,5 +1,6 @@
 const assert = require('assert');
 const Texture = require("./texture");
+const utils = require('./utils');
 
 class Tile {
 
@@ -302,6 +303,8 @@ class Map {
 				map.setTile(i, j, tileset.findOrAddTile(tile, tolerance));
 			}
 		}
+
+		if (tileset.tiles.length >= 4096) console.log(`More than 4096 tiles in map ${name} (tileset ${tileset.name})`.formatAs(utils.FG_RED));
 		return map;
 	}
 

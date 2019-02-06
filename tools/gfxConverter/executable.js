@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const { _restart } = require('./dsl');
 const { watch } = require('./watcher');
 const utils = require('./utils');
@@ -8,7 +9,7 @@ let noWatch = false, noServer = false;
 function packGfx() {
 	_restart();
 	try {
-		let code = fs.readFileSync('gfx/packer-main.js', 'utf-8');
+		let code = fs.readFileSync('packer-main.js', 'utf-8');
 		//code = code.replace(/^import .*?;/gm, '').replace(/.*?require\(.*?;/gm, '');
 		//code = `(function({conv,currentPalette,currentPaletteMultiple,currentTileset,paletteNamed,spriteNamed,tilesetNamed,mapNamed,addColors,blank,config,image,map,multiPalette,palette,sprite,tileset,tiledMap}){${code}})`;
 		code = code.replace(/\.\.\/tools\/gfxConverter\//g, './');
@@ -19,6 +20,8 @@ function packGfx() {
 	}
 }
 
+const projectDir = process.cwd();
+const gfxDir = 'gfx';
 args.forEach((v) => {
 	if (/help/.test(v)) {
 		console.log(`Usage: packer [no-server] [no-watch]`);
@@ -29,6 +32,7 @@ args.forEach((v) => {
 	else console.error(`Unrecognized argument ${v}`.formatAs(utils.FG_RED));
 });
 
+process.chdir(gfxDir);
 console.log('Packing graphics into build directory…');
 packGfx();
 
@@ -36,7 +40,7 @@ if (!noServer) {
 	const express = require('express');
 	const app = express();
 	const port = 8080;
-	app.use(express.static('./'));
+	app.use(express.static(projectDir));
 	app.listen(port, () => console.log(`Open your browser to: http://localhost:${port}/`));
 	if (noWatch) {
 		console.log('After you\'ve made changes to graphics, close and rerun this app'.formatAs(utils.BRIGHT, utils.FG_GREEN));
@@ -44,10 +48,10 @@ if (!noServer) {
 }
 
 if (!noWatch) {
-	watch('gfx', () => {
-		console.log('Triggered reload because of change in gfx directory'.formatAs(utils.BRIGHT, utils.FG_MAGENTA));
+	watch(path.join(projectDir, gfxDir), () => {
+		console.log(`Triggered reload because of change in ${gfxDir} directory`.formatAs(utils.BRIGHT, utils.FG_MAGENTA));
 		packGfx();
 		console.log('Done. You can reload the webpage.');
 	});
-	console.log('Watching for changes on your gfx/ directory; will automatically rebuild.'.formatAs(utils.BRIGHT, utils.FG_GREEN));
+	console.log(`Watching for changes on your ${gfxDir} directory; will automatically rebuild.`.formatAs(utils.BRIGHT, utils.FG_GREEN));
 }

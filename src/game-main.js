@@ -292,7 +292,7 @@ class Enemy1 extends LiveObject {
 
 class Map {
 	constructor(name) {
-		this.collisionPlane = vdp.readMap('collisions');
+		this.collisionPlane = vdp.readMap(name + '-hi');
 		this.tileWidth = vdp.sprite(name).tw;
 		this.tileHeight = vdp.sprite(name).th;
 		this.width = this.collisionPlane.width;
@@ -300,7 +300,8 @@ class Map {
 	}
 
 	checkCollisionAt(x, y) {
-		return this.getMapBlockAt(x, y);
+		//return this.getMapBlockAt(x, y);
+		return false;
 	}
 
 	getMapBlockAt(x, y) {
@@ -377,8 +378,8 @@ let coroutines = new Coroutines();
 
 function *main(_vdp) { vdp = _vdp;
 	const fireLimitPos = 960;
-	 //const perso = new Perso(128, 128);
-	const perso = new Perso(1400, 500);
+	 const perso = new Perso(128, 128);
+	//const perso = new Perso(1400, 500);
 	const fire = new Fire();
 	let subscene = 0;
 

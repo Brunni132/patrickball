@@ -4,6 +4,7 @@ const path = require('path');
 const Texture = require("./texture");
 const { Tileset, Map } = require("./maps");
 const xml2js = require('xml2js');
+const utils = require('./utils');
 
 //function findMainLayer(layer) {
 //	if (Array.isArray(layer)) {
@@ -86,10 +87,14 @@ function readTmx(tmxFileName) {
 
 			assert(layer.data[0]['$'].encoding === 'csv', `Only CSV encoding is supported (map ${layerName})`);
 			const layerData = layer.data[0]['_'].split(',');
-			let i = 0;
+			let i = 0, warned = false;
 			for (let y = 0; y < mapHeight; y++) {
 				for (let x = 0; x < mapWidth; x++) {
 					const tileNo = Math.max(0, layerData[i++] - tilesetFirstTile);
+					if (tileNo >= 4096 && !warned) {
+						console.log(`More than 4096 tiles in map ${layerName}`.formatAs(utils.FG_RED));
+						warned = true;
+					}
 					const paletteFlags = tileset.tiles[tileNo].paletteIndex << 12;
 					resultMap.setTile(x, y, tileNo | paletteFlags);
 				}
