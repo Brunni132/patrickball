@@ -23,9 +23,8 @@ class Camera {
 		if (ofsY < vdp.screenHeight / 2 - camLimit) this.y = perso.y - (vdp.screenHeight / 2 - camLimit);
 		if (ofsY > vdp.screenHeight / 2 + camLimit) this.y = perso.y - (vdp.screenHeight / 2 + camLimit);
 
-		//this.x = Math.min(map.width * map.tileWidth - vdp.screenWidth,  Math.max(this.minimumX, this.x));
-		//this.y = Math.min(map.height * map.tileHeight - vdp.screenHeight,  Math.max(0, this.y));
-		this.x = Math.max(this.minimumX, this.x);
+		this.x = Math.min(map.width * map.tileWidth - vdp.screenWidth,  Math.max(this.minimumX, this.x));
+		this.y = Math.min(map.height * map.tileHeight - vdp.screenHeight,  Math.max(0, this.y));
 	}
 
 	isVisible(object) {
@@ -94,7 +93,7 @@ class Perso {
 
 	takeDamage(pushSideways = true, impulseZ = -8) {
 		if (pushSideways) {
-			Object.assign(this, {vz: impulseZ, vx: -5 * Math.sign(this.vx), vy: 0});
+			Object.assign(this, {vz: impulseZ, vx: -6 * Math.sign(this.vx), vy: 0});
 		}
 		coroutines.replace(this, 'anim', frame => {
 			this.animState = 'hit';
@@ -229,6 +228,8 @@ class LiveObject {
 	get top() { return this.y; }
 	get bottom() { return this.y + this.height; }
 
+	objectPriority(perso) { return this.top <= perso.bottom ? 2 : 3; }
+
 	update(perso) {}
 }
 
@@ -321,7 +322,7 @@ class RockPillar extends LiveObject {
 		this.visiblePart = 0;
 	}
 
-	draw() {
+	draw(perso) {
 		const pos = camera.transform(this.x, this.y - this.visiblePart + 32);
 		if (this.visiblePart < 32) {
 			pos.x += Math.random() * 3 - 1;
@@ -329,7 +330,7 @@ class RockPillar extends LiveObject {
 		}
 
 		const top = vdp.sprite('rock-pillar').offsetted(0, 0, 32, Math.min(32, this.visiblePart));
-		vdp.drawObject(top, pos.x, pos.y, {prio: 2});
+		vdp.drawObject(top, pos.x, pos.y, {prio: this.objectPriority(perso)});
 		//if (this.visiblePart >= 32) {
 		//	const pillar = vdp.sprite('rock-pillar').offsetted(0, 32, 32, this.visiblePart - 32);
 		//	vdp.drawObject(pillar, pos.x, pos.y + 32, {prio: 2});
@@ -381,8 +382,7 @@ class Map {
 	}
 
 	getBlockAt(plane, x, y) {
-		// Wrap around
-		return plane.getElement((x / this.tileWidth) % this.width, (y / this.tileHeight) % this.height);
+		return plane.getElement(x / this.tileWidth, y / this.tileHeight);
 	}
 }
 
@@ -432,9 +432,9 @@ function animateLevel() {
 	}
 }
 
-function drawObjects() {
+function drawObjects(perso) {
 	for (let i = 0; i < liveObjects.length; i++) {
-		if (camera.isVisible(liveObjects[i])) liveObjects[i].draw();
+		if (camera.isVisible(liveObjects[i])) liveObjects[i].draw(perso);
 	}
 }
 
@@ -525,7 +525,7 @@ function *main(_vdp) { vdp = _vdp;
 		vdp.drawBackgroundTilemap('level1-lo', { scrollX: -bgPos.x, scrollY: -bgPos.y, prio: 1 });
 		vdp.drawBackgroundTilemap('level1-hi', { scrollX: -bgPos.x, scrollY: -bgPos.y, prio: 13 });
 		perso.draw();
-		drawObjects();
+		drawObjects(perso);
 
 		fire.update(perso);
 
