@@ -2,40 +2,26 @@ const { addColors, blank, config, image,map,multiPalette,palette,sprite,tileset,
 const {Palette} = require('../tools/gfxConverter/palette.js');
 const fs = require('fs');
 
-const UPDATE_MAP = false;
-
 config({ compact: true, debug: true }, () => {
 	palette('level1', () => {
-		//const tmx = readTmx('level1-composite.tmx');
-		//if (UPDATE_MAP) {
-		//	tileset('level1', blank(16, 16), 32, 32, () => {
-		//		map('base', 'level1-til.png'); // just to load the tileset with the existing tiles
-		//		map('level1-lo', 'level1-lo.png'); // then add the new tiles at the end
-		//		map('level1-hi', 'level1-hi.png'); // for both planes
-		//	});
-		//	tmx.updateMap('level1-lo', global.mapNamed['level1-lo']);
-		//	tmx.updateMap('level1-hi', global.mapNamed['level1-hi']);
-		//	tmx.updateTileset('level1', global.tilesetNamed['level1']);
-		//	tmx.writeTmx();
-		//}
-
 		const tmx = readTmx('level1-new.tmx');
 		const til = tmx.readTileset('level1', global.paletteNamed['level1'], {tilesetWidth: 16});
 		tileset(til);
 		map(tmx.readMap('level1-hi', til));
 		map(tmx.readMap('level1-lo', til));
 
-		//const collisionTil = tmx.readTileset('objects', new Palette('temp'));
-		//map(tmx.readMap('collisions', collisionTil));
-
-
 		const objects = {
 			objects: tmx.json.map.objectgroup[0].object,
-			firstTile: parseInt(tmx.getTileset('objects')['$'].firstgid)
+			firstTile: parseInt(tmx.getTileset('objects')['$'].firstgid),
+			tileTypes: [
+				'0-2;6-8;12-14;18-21;24-25;38-41;46-47;66-69;86-89;97-98;102-104', 'wall',
+				'108-113', 'fire|void'
+			]
 		};
-		fs.writeFileSync('../src/level1-objects.json', JSON.stringify(objects));
+		fs.writeFileSync('../src/level1.json', JSON.stringify(objects));
 
 		tileset('level1-more', 'level1-more.png', 32, 32, {tilesetWidth: 1});
+		sprite('rock-pillar', 'rock-pillar.png');
 	});
 
 	palette('level1-transparent', () => {

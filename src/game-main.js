@@ -1,9 +1,10 @@
 import {startGame, VDP} from '../lib/vdp-lib';
 import {Coroutines} from "./utils";
-const objectDefinitions = require('./level1-objects.json');
+const objectDefinitions = require('./level1.json');
 
 const TIMESTEP = 1 / 60;
 const GRAVITY = 0.3;
+const MAX_Z = 300;
 
 class Camera {
 	constructor() {
@@ -22,8 +23,9 @@ class Camera {
 		if (ofsY < vdp.screenHeight / 2 - camLimit) this.y = perso.y - (vdp.screenHeight / 2 - camLimit);
 		if (ofsY > vdp.screenHeight / 2 + camLimit) this.y = perso.y - (vdp.screenHeight / 2 + camLimit);
 
-		this.x = Math.min(map.width * map.tileWidth - vdp.screenWidth,  Math.max(this.minimumX, this.x));
-		this.y = Math.min(map.height * map.tileHeight - vdp.screenHeight,  Math.max(0, this.y));
+		//this.x = Math.min(map.width * map.tileWidth - vdp.screenWidth,  Math.max(this.minimumX, this.x));
+		//this.y = Math.min(map.height * map.tileHeight - vdp.screenHeight,  Math.max(0, this.y));
+		this.x = Math.max(this.minimumX, this.x);
 	}
 
 	isVisible(object) {
@@ -53,30 +55,38 @@ class Perso {
 		this.vx = this.vy = this.vz = 0;
 		this.width = 24;
 		this.height = 12;
+		this.maxZ = 0;
+		this.direction = 0; // 0=down, 1=up, 2=right, 3=left
 	}
 
 	draw() {
-		let tileNo = 0;
-		if (this.vy > 0 && Math.abs(this.vy) > Math.abs(this.vx)) tileNo = 0;
-		else if (this.vy <= 0 && Math.abs(this.vy) > Math.abs(this.vx)) tileNo = 1;
-		else if (this.vx > 0) tileNo = 2;
-		else if (this.vx <= 0) tileNo = 3;
-
+		let tileNo = this.direction;
 		if (this.animState === 'hit') tileNo = 4;
 
 		const persoTile = vdp.sprite('perso').tile(tileNo);
 		const shadowTile = vdp.sprite('shadow');
 		const pos = camera.transformWithoutShake(this.x, this.y);
-		vdp.drawObject(persoTile, pos.x - 12, pos.y - 18 + this.z / 2, { prio: 3 });
-		vdp.drawObject(shadowTile, pos.x - shadowTile.w / 2, pos.y, { prio: 3, transparent: true });
+		const prio = this.falling ? 2 : 3; // go behind objects when falling
+		vdp.drawObject(persoTile, pos.x - 12, pos.y - 18 + this.z / 2, { prio });
+		if (this.overGround) {
+			vdp.drawObject(shadowTile, pos.x - shadowTile.w / 2, pos.y, {prio, transparent: true});
+		} else if (!this.overGround && this.z < 10) {
+			vdp.drawObject(shadowTile, pos.x - shadowTile.w / 2 + 6, pos.y + 12, {prio: 2, transparent: true, width: 12, height: 5 });
+		}
 	}
 
 	get left() { return this.x - this.width / 2; }
 	get right() { return this.x + this.width / 2; }
 	get top() { return this.y - this.height / 2; }
 	get bottom() { return this.y + this.height / 2; }
-	get grounded() { return this.z >= -0.1; }
+	get falling() { return !this.overGround && this.z >= 10 && this.vz >= 0; }
+	get grounded() { return this.z >= -0.1 && this.overGround; }
+	get overGround() { return this.maxZ < MAX_Z; }
 	set left(value) { this.x = value + this.width / 2; }
+
+	notifyGroundOnObject(obj) {
+		this.maxZ = 0;
+	}
 
 	stompedEnemy() {
 		this.vz = -6;
@@ -84,7 +94,7 @@ class Perso {
 
 	takeDamage(pushSideways = true, impulseZ = -8) {
 		if (pushSideways) {
-			Object.assign(this, {vz: impulseZ, vx: -4 * Math.sign(this.vx), vy: 0});
+			Object.assign(this, {vz: impulseZ, vx: -5 * Math.sign(this.vx), vy: 0});
 		}
 		coroutines.replace(this, 'anim', frame => {
 			this.animState = 'hit';
@@ -98,10 +108,10 @@ class Perso {
 		const impulse = { x: 0, y: 0 };
 
 		if (this.animState !== 'hit') {
-			if (vdp.input.isDown(vdp.input.Key.Up)) targetVelocity.y = -speed;
-			if (vdp.input.isDown(vdp.input.Key.Down)) targetVelocity.y = +speed;
-			if (vdp.input.isDown(vdp.input.Key.Left)) targetVelocity.x = -speed;
-			if (vdp.input.isDown(vdp.input.Key.Right)) targetVelocity.x = +speed;
+			if (vdp.input.isDown(vdp.input.Key.Up)) { targetVelocity.y = -speed; this.direction = 1; }
+			if (vdp.input.isDown(vdp.input.Key.Down)) { targetVelocity.y = +speed; this.direction = 0; }
+			if (vdp.input.isDown(vdp.input.Key.Left)) { targetVelocity.x = -speed; this.direction = 3; }
+			if (vdp.input.isDown(vdp.input.Key.Right)) { targetVelocity.x = +speed; this.direction = 2; }
 			if (vdp.input.hasToggledDown(vdp.input.Key.A) && this.grounded) this.vz = jumpImpulse;
 		}
 
@@ -121,31 +131,42 @@ class Perso {
 
 		this.z += this.vz;
 		// Do not fall under the ground
-		this.z = Math.min(0, this.z);
+		this.z = Math.min(this.maxZ, this.z);
 
-		// Basic collision detection
-		this.x += this.vx;
-		while (map.checkCollisionAt(this.left, this.top) || map.checkCollisionAt(this.left, this.bottom)) {
-			this.x++;
-			//this.vx = 0;
-		}
-		while (map.checkCollisionAt(this.right, this.top) || map.checkCollisionAt(this.right, this.bottom)) {
-			this.x--;
-			//this.vx = 0;
-		}
+		// Fallen out of the map
+		if (this.z >= MAX_Z) replacePersoInLevel(this);
+		if (this.grounded) this.vz = 0;
 
-		this.y += this.vy;
-		while (map.checkCollisionAt(this.left, this.top) || map.checkCollisionAt(this.right, this.top)) {
-			this.y++;
-			//this.vy = 0;
-		}
-		while (map.checkCollisionAt(this.left, this.bottom) || map.checkCollisionAt(this.right, this.bottom)) {
-			this.y--;
-			//this.vy = 0;
+		if (!this.falling) {
+			// Basic collision detection
+			this.x += this.vx;
+			while (map.checkCollisionAt(this.left, this.top) || map.checkCollisionAt(this.left, this.bottom)) {
+				this.x++;
+				//this.vx = 0;
+			}
+			while (map.checkCollisionAt(this.right, this.top) || map.checkCollisionAt(this.right, this.bottom)) {
+				this.x--;
+				//this.vx = 0;
+			}
+
+			this.y += this.vy;
+			while (map.checkCollisionAt(this.left, this.top) || map.checkCollisionAt(this.right, this.top)) {
+				this.y++;
+				//this.vy = 0;
+			}
+			while (map.checkCollisionAt(this.left, this.bottom) || map.checkCollisionAt(this.right, this.bottom)) {
+				this.y--;
+				//this.vy = 0;
+			}
 		}
 
 		// Can not go to the left
 		this.left = Math.max(camera.x, this.left);
+		this.maxZ = 0;
+
+		// Special tile roles (fire)
+		const roles = map.listRolesAt(this.x, this.y);
+		if (roles.includes('void')) this.maxZ = MAX_Z;
 	}
 }
 
@@ -189,11 +210,11 @@ class LiveObject {
 		this.y = parseInt(objDef.y) - this.height;
 	}
 
-	collidesWith(perso, margin = 0) {
+	collidesWith(perso, margin = 0, {ignoreDepth = false} = {}) {
 		const z = 0, depth = 2;
 		return perso.right + margin >= this.left && perso.left - margin < this.right &&
 			perso.bottom + margin >= this.top && perso.top - margin < this.bottom &&
-			Math.abs(perso.z - 0) <  depth;
+			(Math.abs(perso.z - 0) <  depth || ignoreDepth);
 	}
 
 	destroy() {
@@ -255,6 +276,7 @@ class Enemy1 extends LiveObject {
 		super(objDef);
 		this.width = this.height = 24;
 		this.followPlayer = props.followPlayer;
+		this.disableFor = 0;
 	}
 
 	draw() {
@@ -266,10 +288,11 @@ class Enemy1 extends LiveObject {
 	}
 
 	update(perso) {
-		if (this.followPlayer && camera.isVisible(this)) {
+		if (this.followPlayer && camera.isVisible(this) && this.disableFor <= 0) {
 			this.x -= Math.sign(this.x - perso.x) * 0.25;
 			this.y -= Math.sign(this.y - perso.y) * 0.25;
 		}
+		this.disableFor = Math.max(0, this.disableFor - TIMESTEP);
 		if (this.collidesWith(perso, -4)) {
 			if (perso.z < 0) {
 				perso.stompedEnemy();
@@ -285,27 +308,81 @@ class Enemy1 extends LiveObject {
 			}
 			else {
 				perso.takeDamage();
+				this.disableFor = 1;
 			}
+		}
+	}
+}
+
+class RockPillar extends LiveObject {
+	constructor(objDef, props) {
+		super(objDef);
+		this.width = this.height = 32;
+		this.visiblePart = 0;
+	}
+
+	draw() {
+		const pos = camera.transform(this.x, this.y - this.visiblePart + 32);
+		if (this.visiblePart < 32) {
+			pos.x += Math.random() * 3 - 1;
+			pos.y += Math.random() * 3 - 1;
+		}
+
+		const top = vdp.sprite('rock-pillar').offsetted(0, 0, 32, Math.min(32, this.visiblePart));
+		vdp.drawObject(top, pos.x, pos.y, {prio: 2});
+		//if (this.visiblePart >= 32) {
+		//	const pillar = vdp.sprite('rock-pillar').offsetted(0, 32, 32, this.visiblePart - 32);
+		//	vdp.drawObject(pillar, pos.x, pos.y + 32, {prio: 2});
+		//}
+	}
+
+	update(perso) {
+		if (camera.isVisible(this)) {
+			if (this.visiblePart < 1) this.visiblePart += 0.05;
+			else this.visiblePart = Math.min(32, this.visiblePart + 1);
+		}
+		if (this.collidesWith(perso, -2, {ignoreDepth: true}) && perso.z <= 0) {
+			perso.notifyGroundOnObject(this);
 		}
 	}
 }
 
 class Map {
 	constructor(name) {
-		this.collisionPlane = vdp.readMap(name + '-hi');
+		this.hiPlane = vdp.readMap(name + '-hi');
+		this.loPlane = vdp.readMap(name + '-lo');
 		this.tileWidth = vdp.sprite(name).tw;
 		this.tileHeight = vdp.sprite(name).th;
-		this.width = this.collisionPlane.width;
-		this.height = this.collisionPlane.height;
+		this.width = this.loPlane.width;
+		this.height = this.loPlane.height;
+		this.tileRoles = {};
+
+		// Parse tile roles (['1-3;5-6', 'role1|role2', '4;7-8', 'role3', …]
+		for (let i =  0; i < objectDefinitions.tileTypes.length; i += 2) {
+			const intervals = objectDefinitions.tileTypes[i].split(';');
+			const roles = objectDefinitions.tileTypes[i + 1].split('|');
+			for (let interval of intervals) {
+				let [lo, up] = interval.split('-');
+				for (let j = up || lo; j >= lo; j--) {
+					this.tileRoles[j] = roles;
+				}
+			}
+		}
 	}
 
 	checkCollisionAt(x, y) {
-		//return this.getMapBlockAt(x, y);
-		return false;
+		return this.listRolesAt(x, y).includes('wall');
 	}
 
-	getMapBlockAt(x, y) {
-		return this.collisionPlane.getElement(x / this.tileWidth, y / this.tileHeight);
+	listRolesAt(x, y) {
+		const loTile = this.getBlockAt(this.loPlane, x, y);
+		const hiTile = this.getBlockAt(this.hiPlane, x, y);
+		return (this.tileRoles[loTile] || []).concat(this.tileRoles[hiTile] || []);
+	}
+
+	getBlockAt(plane, x, y) {
+		// Wrap around
+		return plane.getElement((x / this.tileWidth) % this.width, (y / this.tileHeight) % this.height);
 	}
 }
 
@@ -313,10 +390,61 @@ function addObject(obj) {
 	liveObjects.push(obj);
 }
 
+function animateLevel() {
+	// Fire
+	if (frameNo % 4 === 0) {
+		const firePal = vdp.readPalette('level1-transparent');
+		// const fireCol = ['#400', '#600', '#800', '#a00', '#c00', '#e00', '#f00', '#e00', '#c00', '#a00', '#800', '#600', '#400'];
+		const it = (frameNo / 4) % 8;
+		// if (frameNo % 16 === 0) {
+		// 	[firePal.array[2], firePal.array[3], firePal.array[4]] = [firePal.array[3], firePal.array[4], firePal.array[2]];
+		// }
+		// firePal.array[1] = vdp.color.make(fireCol[it % fireCol.length]);
+		firePal.array[1] = vdp.color.make(255, 160 + it * 16, 0);
+		firePal.array[2] = vdp.color.make(160 + it * 8, 0, 0);
+		firePal.array[3] = vdp.color.make(255, 64 + it * 8, 0);
+		vdp.writePalette('level1-transparent', firePal);
+
+		let pal = vdp.readPalette('objects');
+		[pal.array[1], pal.array[2], pal.array[3]] = [pal.array[2], pal.array[3], pal.array[1]];
+		vdp.writePalette('objects', pal);
+
+		// Pulse red of the fire field
+		//let triangle = Math.floor(frameNo / 16) % 8;
+		//if (triangle >= 4) triangle = 7 - triangle;
+		//pal = vdp.readPalette('level1');
+		//pal.array[10] = vdp.color.make(0xcc + 0x11 * triangle, 0, 0x22);
+		//vdp.writePalette('level1', pal);
+	}
+
+	if (frameNo % 16 === 1) {
+		// Replace fire bubble tile
+		let tileNo = 110 + Math.max(0, Math.floor(frameNo / 16) % 6 - 2);
+		let tile = vdp.readSprite(vdp.sprite('level1').tile(tileNo), vdp.CopySource.rom);
+		vdp.writeSprite(vdp.sprite('level1').tile(111), tile);
+	}
+
+	if (frameNo % 8 === 1) {
+		let tileNo = 113 + Math.floor(frameNo / 8) % 4;
+		if (tileNo === 113) tileNo = 108;
+		const tile = vdp.readSprite(vdp.sprite('level1').tile(tileNo), vdp.CopySource.rom);
+		vdp.writeSprite(vdp.sprite('level1').tile(108), tile);
+	}
+}
+
 function drawObjects() {
 	for (let i = 0; i < liveObjects.length; i++) {
 		if (camera.isVisible(liveObjects[i])) liveObjects[i].draw();
 	}
+}
+
+function replacePersoInLevel(perso) {
+	perso.z = 0;
+	perso.vz = -10;
+	perso.vx = -10;
+	//perso.vz = perso.vx = perso.vy = 0;
+	//perso.x = 1711;
+	//perso.y = 568;
 }
 
 function prepareObjects() {
@@ -328,6 +456,7 @@ function prepareObjects() {
 		if (tileNo === 2) addObject(new CrackledTile(obj['$'], properties));
 		else if (tileNo === 3) addObject(new Enemy1(obj['$'], properties));
 		else if (tileNo === 4) addObject(new Enemy1(obj['$'], Object.assign({ followPlayer: true }, properties)));
+		else if (tileNo === 5) addObject(new RockPillar(obj['$'], properties));
 		else throw new Error(`Unsupported object type ${tileNo + objectDefinitions.firstTile}`);
 	}
 }
@@ -345,29 +474,6 @@ function updateObjects(perso) {
 	}
 }
 
-function rotatePalettes() {
-	// Fire
-	if (frameNo % 4 === 0) {
-		const firePal = vdp.readPalette('level1-transparent');
-		// const fireCol = ['#400', '#600', '#800', '#a00', '#c00', '#e00', '#f00', '#e00', '#c00', '#a00', '#800', '#600', '#400'];
-		const it = (frameNo / 4) % 8;
-		// if (frameNo % 16 === 0) {
-		// 	[firePal.array[2], firePal.array[3], firePal.array[4]] = [firePal.array[3], firePal.array[4], firePal.array[2]];
-		// }
-		// firePal.array[1] = vdp.color.make(fireCol[it % fireCol.length]);
-		firePal.array[1] = vdp.color.make(255, 160 + it * 16, 0);
-		firePal.array[2] = vdp.color.make(160 + it * 8, 0, 0);
-		firePal.array[3] = vdp.color.make(255, 64 + it * 8, 0);
-		vdp.writePalette('level1-transparent', firePal);
-	}
-
-	if (frameNo % 4 === 0) {
-		const pal = vdp.readPalette('objects');
-		[pal.array[1], pal.array[2], pal.array[3]] = [pal.array[2], pal.array[3], pal.array[1]];
-		vdp.writePalette('objects', pal);
-	}
-}
-
 /** @type {VDP} */
 let vdp;
 let frameNo;
@@ -378,8 +484,8 @@ let coroutines = new Coroutines();
 
 function *main(_vdp) { vdp = _vdp;
 	const fireLimitPos = 960;
-	 const perso = new Perso(128, 128);
-	//const perso = new Perso(1400, 500);
+	//const perso = new Perso(100, 128);
+	const perso = new Perso(2160, 550);
 	const fire = new Fire();
 	let subscene = 0;
 
@@ -396,7 +502,7 @@ function *main(_vdp) { vdp = _vdp;
 		perso.update();
 		camera.update(perso);
 		updateObjects(perso);
-		rotatePalettes();
+		animateLevel();
 		// Coroutines take precedence on previous handlers (including objects)
 		coroutines.updateAll();
 
