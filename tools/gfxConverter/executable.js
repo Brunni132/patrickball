@@ -15,8 +15,10 @@ function packGfx() {
 		code = code.replace(/\.\.\/tools\/gfxConverter\//g, './');
 		code = `(function(){${code}})`;
 		eval(code)();
+		console.log(`[${new Date().toLocaleTimeString()}] Done. You can reload the webpage.`.formatAs(utils.BRIGHT, utils.FG_GREEN));
 	} catch (err) {
-		console.error('Error evaluating your code!', err);
+		console.error('Error evaluating your code!'.formatAs(utils.BRIGHT, utils.FG_RED), err);
+		if (fs.existsSync('../build/game.json')) fs.unlinkSync('../build/game.json');
 	}
 }
 
@@ -49,9 +51,8 @@ if (!noServer) {
 
 if (!noWatch) {
 	watch(path.join(projectDir, gfxDir), () => {
-		console.log(`Triggered reload because of change in ${gfxDir} directory`.formatAs(utils.BRIGHT, utils.FG_MAGENTA));
+		console.log(`Triggered reload because of change in ${gfxDir} directory`);
 		packGfx();
-		console.log('Done. You can reload the webpage.');
 	});
-	console.log(`Watching for changes on your ${gfxDir} directory; will automatically rebuild.`.formatAs(utils.BRIGHT, utils.FG_GREEN));
+	console.log(`Watching for changes on your ${gfxDir} directory; will automatically rebuild.`);
 }

@@ -2,7 +2,7 @@ const { addColors, blank, config, image,map,multiPalette,palette,sprite,tileset,
 const {Palette} = require('../tools/gfxConverter/palette.js');
 const fs = require('fs');
 
-config({ compact: true, debug: true }, () => {
+config({ compact: true, debug: false }, () => {
 	palette('level1', () => {
 		const tmx = readTmx('level1-new.tmx');
 		const til = tmx.readTileset('level1', global.paletteNamed['level1'], {tilesetWidth: 16});
