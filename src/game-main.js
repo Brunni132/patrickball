@@ -424,11 +424,14 @@ function animateLevel() {
 		vdp.writeSprite(vdp.sprite('level1').tile(111), tile);
 	}
 
-	if (frameNo % 8 === 1) {
-		let tileNo = 113 + Math.floor(frameNo / 8) % 4;
-		if (tileNo === 113) tileNo = 108;
-		const tile = vdp.readSprite(vdp.sprite('level1').tile(tileNo), vdp.CopySource.rom);
-		vdp.writeSprite(vdp.sprite('level1').tile(108), tile);
+	if (frameNo % 8 === 2) {
+		// Fire lava scroll
+		const sprite = vdp.readSprite(vdp.sprite('level1').tile(108));
+		for (let y = 0; y < 8; y++)
+			for (let x = 0; x < 16; x++) sprite.setElement(x, y, sprite.getElement((x + 1) % 16, y));
+		for (let y = 8; y < 16; y++)
+			for (let x = 15; x >= 0; x--) sprite.setElement((x + 2) % 16, y, sprite.getElement(x, y));
+		vdp.writeSprite(vdp.sprite('level1').tile(108), sprite);
 	}
 }
 
