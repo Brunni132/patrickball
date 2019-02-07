@@ -2,7 +2,7 @@ const { addColors, blank, config, image,map,multiPalette,palette,sprite,tileset,
 const {Palette} = require('../tools/gfxConverter/palette.js');
 const fs = require('fs');
 
-config({ compact: true, debug: false }, () => {
+config({ compact: true, debug: true }, () => {
 	palette('level1', () => {
 		const tmx = readTmx('level1-new.tmx');
 		const til = tmx.readTileset('level1', global.paletteNamed['level1'], {tilesetWidth: 16});
@@ -15,7 +15,8 @@ config({ compact: true, debug: false }, () => {
 			firstTile: parseInt(tmx.getTileset('objects')['$'].firstgid),
 			tileTypes: [
 				'0-2;6-8;12-14;18-21;24-25;38-41;46-47;66-69;86-89;97-98;102-104', 'wall',
-				'108-113', 'fire|void'
+				'108-113', 'fire|void',
+				'114', 'void',
 			]
 		};
 		fs.writeFileSync('../src/level1.json', JSON.stringify(objects));

@@ -65,12 +65,20 @@ class Perso {
 		const persoTile = vdp.sprite('perso').tile(tileNo);
 		const shadowTile = vdp.sprite('shadow');
 		const pos = camera.transformWithoutShake(this.x, this.y);
-		const prio = this.falling ? 2 : 3; // go behind objects when falling
-		vdp.drawObject(persoTile, pos.x - 12, pos.y - 18 + this.z / 2, { prio });
+		const scaleFactor = Math.min(1, (MAX_Z - this.z) / MAX_Z);
+		const jumpAltitude = Math.min(0, this.z / 2);
+		//vdp.drawObject(persoTile, pos.x - 12, pos.y - 22 + this.z / 2, { prio: 3 });
+		//if (this.overGround) {
+		//	vdp.drawObject(shadowTile, pos.x - shadowTile.w / 2, pos.y - 4, {prio: 3, transparent: true});
+		//} else if (!this.overGround && this.z < 10) {
+		//	vdp.drawObject(shadowTile, pos.x - shadowTile.w / 2 + 10, pos.y + 8, {prio: 2, transparent: true, width: 12, height: 5 });
+		//}
+		vdp.drawObject(persoTile, pos.x - persoTile.w * scaleFactor / 2, pos.y - persoTile.h * scaleFactor + jumpAltitude,
+			{ prio: 3, width: persoTile.w * scaleFactor, height: persoTile.h * scaleFactor });
 		if (this.overGround) {
-			vdp.drawObject(shadowTile, pos.x - shadowTile.w / 2, pos.y, {prio, transparent: true});
+			vdp.drawObject(shadowTile, pos.x - shadowTile.w / 2, pos.y - 4, {prio: 3, transparent: true});
 		} else if (!this.overGround && this.z < 10) {
-			vdp.drawObject(shadowTile, pos.x - shadowTile.w / 2 + 6, pos.y + 12, {prio: 2, transparent: true, width: 12, height: 5 });
+			vdp.drawObject(shadowTile, pos.x - shadowTile.w / 2 + 6, pos.y, {prio: 2, transparent: true, width: 12, height: 5 });
 		}
 	}
 
@@ -207,13 +215,14 @@ class LiveObject {
 		this.height = parseInt(objDef.height);
 		this.x = parseInt(objDef.x);
 		this.y = parseInt(objDef.y) - this.height;
+		this.z = 0;
 	}
 
-	collidesWith(perso, margin = 0, {ignoreDepth = false} = {}) {
-		const z = 0, depth = 2;
-		return perso.right + margin >= this.left && perso.left - margin < this.right &&
-			perso.bottom + margin >= this.top && perso.top - margin < this.bottom &&
-			(Math.abs(perso.z - 0) <  depth || ignoreDepth);
+	collidesWith(perso, {ignoreDepth = false, marginW = 0, marginH = 0} = {}) {
+		const depth = 2;
+		return perso.right + marginW >= this.left && perso.left - marginW < this.right &&
+			perso.bottom + marginH >= this.top && perso.top - marginH < this.bottom &&
+			(Math.abs(perso.z - this.z) < depth || ignoreDepth);
 	}
 
 	destroy() {
@@ -233,7 +242,7 @@ class LiveObject {
 	update(perso) {}
 }
 
-class CrackledTile extends LiveObject {
+class CrackedTile extends LiveObject {
 	constructor(objDef, props) {
 		super(objDef);
 		this.explosionAnimation = 0;
@@ -266,7 +275,7 @@ class CrackledTile extends LiveObject {
 			this.explosionAnimation = TIMESTEP * 8;
 		}
 
-		if (this.explosionAnimation >= 3 && this.collidesWith(perso, -8)) {
+		if (this.explosionAnimation >= 3 && this.collidesWith(perso, {marginW: -8, marginH: -8})) {
 			perso.takeDamage();
 		}
 	}
@@ -294,7 +303,7 @@ class Enemy1 extends LiveObject {
 			this.y -= Math.sign(this.y - perso.y) * 0.25;
 		}
 		this.disableFor = Math.max(0, this.disableFor - TIMESTEP);
-		if (this.collidesWith(perso, -4)) {
+		if (this.collidesWith(perso, {marginW: -4, marginH: -4})) {
 			if (perso.z < 0) {
 				perso.stompedEnemy();
 				this.update = () => {};
@@ -320,29 +329,37 @@ class RockPillar extends LiveObject {
 		super(objDef);
 		this.width = this.height = 32;
 		this.visiblePart = 0;
+		this.fullyOutside = props.fullyOutside || 32;
+		this.spawnY = this.y;
+		console.log(`TEMP Created pillar`, this.fullyOutside);
 	}
 
 	draw(perso) {
-		const pos = camera.transform(this.x, this.y - this.visiblePart + 32);
-		if (this.visiblePart < 32) {
+		const pos = camera.transform(this.x, this.y);
+		if (this.visiblePart < this.fullyOutside) {
 			pos.x += Math.random() * 3 - 1;
 			pos.y += Math.random() * 3 - 1;
 		}
 
 		const top = vdp.sprite('rock-pillar').offsetted(0, 0, 32, Math.min(32, this.visiblePart));
-		vdp.drawObject(top, pos.x, pos.y, {prio: this.objectPriority(perso)});
-		//if (this.visiblePart >= 32) {
-		//	const pillar = vdp.sprite('rock-pillar').offsetted(0, 32, 32, this.visiblePart - 32);
-		//	vdp.drawObject(pillar, pos.x, pos.y + 32, {prio: 2});
-		//}
+		const prio = this.objectPriority(perso);
+		vdp.drawObject(top, pos.x, pos.y, {prio});
+		if (this.visiblePart > 32) {
+			const pillar = vdp.sprite('rock-pillar').offsetted(0, 32, 32, this.visiblePart - 32);
+			vdp.drawObject(pillar, pos.x, pos.y + 32, {prio});
+		}
 	}
 
 	update(perso) {
 		if (camera.isVisible(this)) {
 			if (this.visiblePart < 1) this.visiblePart += 0.05;
-			else this.visiblePart = Math.min(32, this.visiblePart + 1);
+			else this.visiblePart = Math.min(this.fullyOutside, this.visiblePart + 1);
+			console.log(`TEMP `, this.visiblePart);
 		}
-		if (this.collidesWith(perso, -2, {ignoreDepth: true}) && perso.z <= 0) {
+
+		this.y = this.spawnY - this.visiblePart + 32;
+		const correspondingZ = this.visiblePart > 32 ? (96 - this.visiblePart) : 0;
+		if (this.collidesWith(perso, {marginW: -8, marginH: 0, ignoreDepth: true}) && perso.z <= correspondingZ) {
 			perso.notifyGroundOnObject(this);
 		}
 	}
@@ -445,9 +462,6 @@ function replacePersoInLevel(perso) {
 	perso.z = 0;
 	perso.vz = -10;
 	perso.vx = -10;
-	//perso.vz = perso.vx = perso.vy = 0;
-	//perso.x = 1711;
-	//perso.y = 568;
 }
 
 function prepareObjects() {
@@ -455,8 +469,11 @@ function prepareObjects() {
 		const obj = objectDefinitions.objects[i];
 		if (!obj['$'].gid) continue;
 		const tileNo = parseInt(obj['$'].gid - objectDefinitions.firstTile);
-		const properties = obj.properties || {};
-		if (tileNo === 2) addObject(new CrackledTile(obj['$'], properties));
+		// The format is super weird because of the xml => json conversion, just sowith it
+		const properties = {};
+		if (obj.properties) obj.properties[0].property.forEach(o => properties[o['$'].name] = o['$'].value);
+
+		if (tileNo === 2) addObject(new CrackedTile(obj['$'], properties));
 		else if (tileNo === 3) addObject(new Enemy1(obj['$'], properties));
 		else if (tileNo === 4) addObject(new Enemy1(obj['$'], Object.assign({ followPlayer: true }, properties)));
 		else if (tileNo === 5) addObject(new RockPillar(obj['$'], properties));
@@ -488,7 +505,7 @@ let coroutines = new Coroutines();
 function *main(_vdp) { vdp = _vdp;
 	const fireLimitPos = 960;
 	//const perso = new Perso(100, 128);
-	const perso = new Perso(2160, 550);
+	const perso = new Perso(2460, 550);
 	const fire = new Fire();
 	let subscene = 0;
 
