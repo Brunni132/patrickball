@@ -15,8 +15,8 @@ config({ compact: true, debug: true }, () => {
 			firstTile: parseInt(tmx.getTileset('objects')['$'].firstgid),
 			tileTypes: [
 				'0-2;6-8;12-14;18-21;24-25;38-41;46-47;66-69;86-89;97-98;102-104', 'wall',
-				'108-113', 'fire|void',
-				'114', 'void',
+				'108-113', 'fire|void|goleft',
+				'114-117', 'void|nofall|godown',
 			]
 		};
 		fs.writeFileSync('../src/level1.json', JSON.stringify(objects));
@@ -37,5 +37,7 @@ config({ compact: true, debug: true }, () => {
 
 	palette('objects', () => {
 		sprite('flame', 'flame.png');
+		sprite('cart-lateral', 'cart-lateral.png');
+		sprite('cart-vertical', 'cart-vertical.png');
 	});
 });

@@ -65,14 +65,10 @@ class Perso {
 		const persoTile = vdp.sprite('perso').tile(tileNo);
 		const shadowTile = vdp.sprite('shadow');
 		const pos = camera.transformWithoutShake(this.x, this.y);
-		const scaleFactor = Math.min(1, (MAX_Z - this.z) / MAX_Z);
-		const jumpAltitude = Math.min(0, this.z / 2);
-		//vdp.drawObject(persoTile, pos.x - 12, pos.y - 22 + this.z / 2, { prio: 3 });
-		//if (this.overGround) {
-		//	vdp.drawObject(shadowTile, pos.x - shadowTile.w / 2, pos.y - 4, {prio: 3, transparent: true});
-		//} else if (!this.overGround && this.z < 10) {
-		//	vdp.drawObject(shadowTile, pos.x - shadowTile.w / 2 + 10, pos.y + 8, {prio: 2, transparent: true, width: 12, height: 5 });
-		//}
+		const scaleFactor = (MAX_Z - this.z) / MAX_Z;
+		let jumpAltitude = this.z < 0 ? (this.z / 2) : (this.z / 4);
+		// To avoid falling over a solid lo-plane block (has lo-priority, so we have no way to put the character behind it)
+		if (this.falling && !map.listRolesAt(this.x, this.y + jumpAltitude).includes('void')) return;
 		vdp.drawObject(persoTile, pos.x - persoTile.w * scaleFactor / 2, pos.y - persoTile.h * scaleFactor + jumpAltitude,
 			{ prio: 3, width: persoTile.w * scaleFactor, height: persoTile.h * scaleFactor });
 		if (this.overGround) {
@@ -97,6 +93,15 @@ class Perso {
 
 	stompedEnemy() {
 		this.vz = -6;
+	}
+
+	replaceInLevel(perso, rolesInTileOfDeath) {
+		this.z = 0;
+		this.vz = -10;
+		if (rolesInTileOfDeath.includes('goleft')) this.vx = -10;
+		if (rolesInTileOfDeath.includes('goright')) this.vx = 10;
+		if (rolesInTileOfDeath.includes('goup')) this.vy = -10;
+		if (rolesInTileOfDeath.includes('godown')) this.vy = 10;
 	}
 
 	takeDamage(pushSideways = true, impulseZ = -8) {
@@ -141,7 +146,7 @@ class Perso {
 		this.z = Math.min(this.maxZ, this.z);
 
 		// Fallen out of the map
-		if (this.z >= MAX_Z) replacePersoInLevel(this);
+		if (this.z >= MAX_Z) this.replaceInLevel(this, map.listRolesAt(this.x, this.y));
 		if (this.grounded) this.vz = 0;
 
 		if (!this.falling) {
@@ -169,11 +174,11 @@ class Perso {
 
 		// Can not go to the left
 		this.left = Math.max(camera.x, this.left);
-		this.maxZ = 0;
 
 		// Special tile roles (fire)
 		const roles = map.listRolesAt(this.x, this.y);
 		if (roles.includes('void')) this.maxZ = MAX_Z;
+		else this.maxZ = 0;
 	}
 }
 
@@ -331,7 +336,6 @@ class RockPillar extends LiveObject {
 		this.visiblePart = 0;
 		this.fullyOutside = props.fullyOutside || 32;
 		this.spawnY = this.y;
-		console.log(`TEMP Created pillar`, this.fullyOutside);
 	}
 
 	draw(perso) {
@@ -354,7 +358,6 @@ class RockPillar extends LiveObject {
 		if (camera.isVisible(this)) {
 			if (this.visiblePart < 1) this.visiblePart += 0.05;
 			else this.visiblePart = Math.min(this.fullyOutside, this.visiblePart + 1);
-			console.log(`TEMP `, this.visiblePart);
 		}
 
 		this.y = this.spawnY - this.visiblePart + 32;
@@ -364,6 +367,32 @@ class RockPillar extends LiveObject {
 		}
 	}
 }
+
+class MineCart extends LiveObject {
+	constructor(objDef, props) {
+		super(objDef);
+		this.width = this.height = 32;
+	}
+
+	draw(perso) {
+		const pos = camera.transform(this.x, this.y);
+		vdp.drawObject('cart-lateral', pos.x, pos.y, {prio: 4});
+	}
+
+	update(perso) {
+		//if (camera.isVisible(this)) {
+		//	if (this.visiblePart < 1) this.visiblePart += 0.05;
+		//	else this.visiblePart = Math.min(this.fullyOutside, this.visiblePart + 1);
+		//}
+		//
+		//this.y = this.spawnY - this.visiblePart + 32;
+		//const correspondingZ = this.visiblePart > 32 ? (96 - this.visiblePart) : 0;
+		//if (this.collidesWith(perso, {marginW: -8, marginH: 0, ignoreDepth: true}) && perso.z <= correspondingZ) {
+		//	perso.notifyGroundOnObject(this);
+		//}
+	}
+}
+
 
 class Map {
 	constructor(name) {
@@ -458,12 +487,6 @@ function drawObjects(perso) {
 	}
 }
 
-function replacePersoInLevel(perso) {
-	perso.z = 0;
-	perso.vz = -10;
-	perso.vx = -10;
-}
-
 function prepareObjects() {
 	for (let i = 0; i < objectDefinitions.objects.length; i++) {
 		const obj = objectDefinitions.objects[i];
@@ -477,7 +500,8 @@ function prepareObjects() {
 		else if (tileNo === 3) addObject(new Enemy1(obj['$'], properties));
 		else if (tileNo === 4) addObject(new Enemy1(obj['$'], Object.assign({ followPlayer: true }, properties)));
 		else if (tileNo === 5) addObject(new RockPillar(obj['$'], properties));
-		else throw new Error(`Unsupported object type ${tileNo + objectDefinitions.firstTile}`);
+		else if (tileNo === 6) addObject(new MineCart(obj['$'], properties));
+		else throw new Error(`Unsupported object type ${tileNo}`);
 	}
 }
 
@@ -505,7 +529,7 @@ let coroutines = new Coroutines();
 function *main(_vdp) { vdp = _vdp;
 	const fireLimitPos = 960;
 	//const perso = new Perso(100, 128);
-	const perso = new Perso(2460, 550);
+	const perso = new Perso(2460, 50);
 	const fire = new Fire();
 	let subscene = 0;
 
