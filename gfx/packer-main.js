@@ -3,6 +3,11 @@ const {Palette} = require('../tools/gfxConverter/palette.js');
 const fs = require('fs');
 
 config({ compact: true, debug: true }, () => {
+	// Used for the background gradient
+	palette('blank1', () => {});
+	palette('blank2', () => {});
+	palette('blank3', () => {});
+
 	palette('level1', () => {
 		const tmx = readTmx('level1-new.tmx');
 		const til = tmx.readTileset('level1', global.paletteNamed['level1'], {tilesetWidth: 16});
@@ -31,14 +36,10 @@ config({ compact: true, debug: true }, () => {
 		tileset('enemy1', 'enemy1.png', 24, 24, {tilesetWidth: 1});
 	});
 
-	palette('objects', () => {
+	palette('level1-objects', () => {
 		sprite('firewall', 'firewall.png');
 		sprite('flame', 'flame.png');
 		sprite('cart-lateral', 'cart-lateral.png');
 		sprite('cart-vertical', 'cart-vertical.png');
 	});
-
-	palette('blank1', () => {});
-	palette('blank2', () => {});
-	palette('blank3', () => {});
 });

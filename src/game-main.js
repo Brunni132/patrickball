@@ -441,23 +441,12 @@ function addObject(obj) {
 function animateLevel() {
 	// Fire
 	if (frameNo % 4 === 0) {
-		const firePal = vdp.readPalette('objects');
+		const firePal = vdp.readPalette('level1-objects');
 		const it = (frameNo / 4) % 8;
-		firePal.array[2] = vdp.color.make(255, 160 + it * 16, 0);
-		firePal.array[3] = vdp.color.make(160 + it * 8, 0, 0);
-		firePal.array[1] = vdp.color.make(255, 64 + it * 8, 0);
-		vdp.writePalette('objects', firePal);
-
-		let pal = vdp.readPalette('objects');
-		[pal.array[1], pal.array[2], pal.array[3]] = [pal.array[2], pal.array[3], pal.array[1]];
-		vdp.writePalette('objects', pal);
-
-		// Pulse red of the fire field
-		//let triangle = Math.floor(frameNo / 16) % 8;
-		//if (triangle >= 4) triangle = 7 - triangle;
-		//pal = vdp.readPalette('level1');
-		//pal.array[10] = vdp.color.make(0xcc + 0x11 * triangle, 0, 0x22);
-		//vdp.writePalette('level1', pal);
+		firePal.array[1] = vdp.color.make(255, 160 + it * 16, 0);
+		firePal.array[2] = vdp.color.make(160 + it * 8, 0, 0);
+		firePal.array[3] = vdp.color.make(255, 64 + it * 8, 0);
+		vdp.writePalette('level1-objects', firePal);
 	}
 
 	if (frameNo % 16 === 1) {
@@ -480,22 +469,10 @@ function animateLevel() {
 
 function drawBackgrounds() {
 	const firstBlankPalette = vdp.palette('blank1').y;
-	const palMem = vdp.readPaletteMemory(0, firstBlankPalette, 16, 3, vdp.CopySource.blank);
-	for (let i = 0; i < 16; i++)  // Blue to red gradient
-		palMem.setElement(i, 0, vdp.color.make(i * 16, 0, 0x88 - i * 8));
-	for (let i = 1; i < 16; i++) 	// Red to yellow
-		palMem.setElement(i, 1, vdp.color.make(255, i * 16, 0));
-	const mountain = vdp.color.make('#d4a26e');
-	for (let i = 0; i < 16; i++)	// Mountain to black
-		palMem.setElement(i, 2, vdp.color.sub(mountain, vdp.color.make(i * 16, i * 16, i * 16)));
-	vdp.writePaletteMemory(0, firstBlankPalette, 16, 3, palMem);
-
 	const bgPos = camera.transform(0, 0);
 	const scrollY = Math.floor(bgPos.y / 16);
 	const mountainLimit = 112 + scrollY;
 	const colorSwap = new vdp.LineColorArray(0, 0);
-	// Color 0 will be transparent
-	vdp.configBackdropColor(palMem.getElement(0, 0));
 	for (let i = 0; i < 48; i++)
 		colorSwap.setLine(i, i / 3, firstBlankPalette);
 	for (let i = 4; i < mountainLimit; i++)
@@ -504,8 +481,8 @@ function drawBackgrounds() {
 		colorSwap.setLine(i, Math.max(0, Math.min(15, (i - mountainLimit - 4) / 2)), firstBlankPalette + 2);
 	vdp.configColorSwap([colorSwap]);
 
-	vdp.drawBackgroundTilemap('level1-lo', { scrollX: -bgPos.x, scrollY: -bgPos.y, prio: 1 });
-	vdp.drawBackgroundTilemap('level1-hi', { scrollX: -bgPos.x, scrollY: -bgPos.y, prio: 13 });
+	vdp.drawBackgroundTilemap('level1-lo', { scrollX: -bgPos.x, scrollY: -bgPos.y, prio: 1, wrap: false });
+	vdp.drawBackgroundTilemap('level1-hi', { scrollX: -bgPos.x, scrollY: -bgPos.y, prio: 13, wrap: false });
 
 	// Draw mountains
 	const mountainTile = vdp.sprite('level1').tile(93).offsetted(0, 0, 48, 32);
@@ -518,6 +495,19 @@ function drawObjects(perso) {
 	for (let i = 0; i < liveObjects.length; i++) {
 		if (camera.isVisible(liveObjects[i])) liveObjects[i].draw(perso);
 	}
+}
+
+function prepareBackgrounds() {
+	const firstBlankPalette = vdp.palette('blank1').y;
+	const palMem = vdp.readPaletteMemory(0, firstBlankPalette, 16, 3, vdp.CopySource.blank);
+	for (let i = 0; i < 16; i++)  // Blue to red gradient
+		palMem.setElement(i, 0, vdp.color.make(i * 16, 0, 0x88 - i * 8));
+	for (let i = 1; i < 16; i++) 	// Red to yellow
+		palMem.setElement(i, 1, vdp.color.make(255, i * 16, 0));
+	const mountain = vdp.color.make('#d4a26e');
+	for (let i = 0; i < 16; i++)	// Mountain to black
+		palMem.setElement(i, 2, vdp.color.sub(mountain, vdp.color.make(i * 16, i * 16, i * 16)));
+	vdp.writePaletteMemory(0, firstBlankPalette, 16, 3, palMem);
 }
 
 function prepareObjects() {
@@ -570,6 +560,7 @@ function *main(_vdp) { vdp = _vdp;
 	map = new Map('level1');
 	frameNo = 0;
 
+	prepareBackgrounds();
 	prepareObjects();
 
 	while (true) {
