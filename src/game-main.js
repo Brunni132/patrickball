@@ -441,12 +441,17 @@ function addObject(obj) {
 function animateLevel() {
 	// Fire
 	if (frameNo % 4 === 0) {
-		const firePal = vdp.readPalette('level1-objects');
+		const pal = vdp.readPalette('level1-objects');
 		const it = (frameNo / 4) % 8;
-		firePal.array[1] = vdp.color.make(255, 160 + it * 16, 0);
-		firePal.array[2] = vdp.color.make(160 + it * 8, 0, 0);
-		firePal.array[3] = vdp.color.make(255, 64 + it * 8, 0);
-		vdp.writePalette('level1-objects', firePal);
+		pal.array[1] = vdp.color.make(255, 160 + it * 16, 0);
+		pal.array[2] = vdp.color.make(160 + it * 8, 0, 0);
+		pal.array[3] = vdp.color.make(255, 64 + it * 8, 0);
+		// Flame
+		[pal.array[4], pal.array[5], pal.array[6]] = [pal.array[5], pal.array[6], pal.array[4]];
+		vdp.writePalette('level1-objects', pal);
+
+		//let pal = vdp.readPalette('objects');
+		//vdp.writePalette('objects', pal);
 	}
 
 	if (frameNo % 16 === 1) {
@@ -475,8 +480,10 @@ function drawBackgrounds() {
 	const colorSwap = new vdp.LineColorArray(0, 0);
 	for (let i = 0; i < 48; i++)
 		colorSwap.setLine(i, i / 3, firstBlankPalette);
-	for (let i = 4; i < mountainLimit; i++)
-		colorSwap.setLine(i + 44, Math.min(15, i / 4), firstBlankPalette + 1);
+	for (let i = 4; i < mountainLimit; i++) {
+		const add = i % 4 === 2 ? 1 : 0;
+		colorSwap.setLine(i + 44, Math.min(15, i / 4 + add), firstBlankPalette + 1);
+	}
 	for (let i = mountainLimit; i < 256; i++)
 		colorSwap.setLine(i, Math.max(0, Math.min(15, (i - mountainLimit - 4) / 2)), firstBlankPalette + 2);
 	vdp.configColorSwap([colorSwap]);

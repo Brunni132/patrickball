@@ -19,9 +19,9 @@ config({ compact: true, debug: true }, () => {
 			objects: tmx.json.map.objectgroup[0].object,
 			firstTile: parseInt(tmx.getTileset('objects')['$'].firstgid),
 			tileTypes: [
-				'0-2;6-8;12-14;18-21;24-25;38-41;46-47;66-69;86-89;97-98;102-104', 'wall',
+				'0-2;6-8;12-14;18-21;24-25;37;45;53;38-41;46-47;66-69;86-89;97-98;102-104', 'wall',
 				'108-113', 'fire|void|goleft',
-				'37;45;53;41;114-117', 'void|godown',
+				'114-117', 'void|godown',
 			]
 		};
 		fs.writeFileSync('../src/level1.json', JSON.stringify(objects));
