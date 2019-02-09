@@ -25,10 +25,6 @@ config({ compact: true, debug: true }, () => {
 		sprite('rock-pillar', 'rock-pillar.png');
 	});
 
-	palette('level1-transparent', () => {
-		sprite('firewall', 'firewall.png');
-	});
-
 	palette('perso', () => {
 		tileset('perso', 'perso.png', 24, 24, {tilesetWidth: 1});
 		sprite('shadow', 'shadow.png');
@@ -36,6 +32,7 @@ config({ compact: true, debug: true }, () => {
 	});
 
 	palette('objects', () => {
+		sprite('firewall', 'firewall.png');
 		sprite('flame', 'flame.png');
 		sprite('cart-lateral', 'cart-lateral.png');
 		sprite('cart-vertical', 'cart-vertical.png');

@@ -441,17 +441,12 @@ function addObject(obj) {
 function animateLevel() {
 	// Fire
 	if (frameNo % 4 === 0) {
-		const firePal = vdp.readPalette('level1-transparent');
-		// const fireCol = ['#400', '#600', '#800', '#a00', '#c00', '#e00', '#f00', '#e00', '#c00', '#a00', '#800', '#600', '#400'];
+		const firePal = vdp.readPalette('objects');
 		const it = (frameNo / 4) % 8;
-		// if (frameNo % 16 === 0) {
-		// 	[firePal.array[2], firePal.array[3], firePal.array[4]] = [firePal.array[3], firePal.array[4], firePal.array[2]];
-		// }
-		// firePal.array[1] = vdp.color.make(fireCol[it % fireCol.length]);
-		firePal.array[1] = vdp.color.make(255, 160 + it * 16, 0);
-		firePal.array[2] = vdp.color.make(160 + it * 8, 0, 0);
-		firePal.array[3] = vdp.color.make(255, 64 + it * 8, 0);
-		vdp.writePalette('level1-transparent', firePal);
+		firePal.array[2] = vdp.color.make(255, 160 + it * 16, 0);
+		firePal.array[3] = vdp.color.make(160 + it * 8, 0, 0);
+		firePal.array[1] = vdp.color.make(255, 64 + it * 8, 0);
+		vdp.writePalette('objects', firePal);
 
 		let pal = vdp.readPalette('objects');
 		[pal.array[1], pal.array[2], pal.array[3]] = [pal.array[2], pal.array[3], pal.array[1]];
@@ -566,9 +561,9 @@ let coroutines = new Coroutines();
 
 function *main(_vdp) { vdp = _vdp;
 	const fireLimitPos = 960;
-	//const perso = new Perso(100, 128);
+	const perso = new Perso(100, 128);
 	//const perso = new Perso(1200, 600);
-	const perso = new Perso(2460, 50);
+	//const perso = new Perso(2460, 50);
 	const fire = new Fire();
 	let subscene = 0;
 
