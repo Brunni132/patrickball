@@ -16,7 +16,7 @@ config({ compact: true, debug: true }, () => {
 			tileTypes: [
 				'0-2;6-8;12-14;18-21;24-25;38-41;46-47;66-69;86-89;97-98;102-104', 'wall',
 				'108-113', 'fire|void|goleft',
-				'114-117', 'void|nofall|godown',
+				'37;45;53;41;114-117', 'void|godown',
 			]
 		};
 		fs.writeFileSync('../src/level1.json', JSON.stringify(objects));
@@ -40,4 +40,8 @@ config({ compact: true, debug: true }, () => {
 		sprite('cart-lateral', 'cart-lateral.png');
 		sprite('cart-vertical', 'cart-vertical.png');
 	});
+
+	palette('blank1', () => {});
+	palette('blank2', () => {});
+	palette('blank3', () => {});
 });

@@ -483,6 +483,42 @@ function animateLevel() {
 	}
 }
 
+function drawBackgrounds() {
+	const firstBlankPalette = vdp.palette('blank1').y;
+	const palMem = vdp.readPaletteMemory(0, firstBlankPalette, 16, 3, vdp.CopySource.blank);
+	for (let i = 0; i < 16; i++)  // Blue to red gradient
+		palMem.setElement(i, 0, vdp.color.make(i * 16, 0, 0x88 - i * 8));
+	for (let i = 1; i < 16; i++) 	// Red to yellow
+		palMem.setElement(i, 1, vdp.color.make(255, i * 16, 0));
+	const mountain = vdp.color.make('#d4a26e');
+	for (let i = 0; i < 16; i++)	// Mountain to black
+		palMem.setElement(i, 2, vdp.color.sub(mountain, vdp.color.make(i * 16, i * 16, i * 16)));
+	vdp.writePaletteMemory(0, firstBlankPalette, 16, 3, palMem);
+
+	const bgPos = camera.transform(0, 0);
+	const scrollY = Math.floor(bgPos.y / 16);
+	const mountainLimit = 112 + scrollY;
+	const colorSwap = new vdp.LineColorArray(0, 0);
+	// Color 0 will be transparent
+	vdp.configBackdropColor(palMem.getElement(0, 0));
+	for (let i = 0; i < 48; i++)
+		colorSwap.setLine(i, i / 3, firstBlankPalette);
+	for (let i = 4; i < mountainLimit; i++)
+		colorSwap.setLine(i + 44, Math.min(15, i / 4), firstBlankPalette + 1);
+	for (let i = mountainLimit; i < 256; i++)
+		colorSwap.setLine(i, Math.max(0, Math.min(15, (i - mountainLimit - 4) / 2)), firstBlankPalette + 2);
+	vdp.configColorSwap([colorSwap]);
+
+	vdp.drawBackgroundTilemap('level1-lo', { scrollX: -bgPos.x, scrollY: -bgPos.y, prio: 1 });
+	vdp.drawBackgroundTilemap('level1-hi', { scrollX: -bgPos.x, scrollY: -bgPos.y, prio: 13 });
+
+	// Draw mountains
+	const mountainTile = vdp.sprite('level1').tile(93).offsetted(0, 0, 48, 32);
+	const fineScroll = (-bgPos.x / 4) % 48;
+	for (let i = -fineScroll; i < 256; i += 48)
+		vdp.drawObject(mountainTile, i, mountainLimit - 32, { prio: 1 });
+}
+
 function drawObjects(perso) {
 	for (let i = 0; i < liveObjects.length; i++) {
 		if (camera.isVisible(liveObjects[i])) liveObjects[i].draw(perso);
@@ -531,12 +567,11 @@ let coroutines = new Coroutines();
 function *main(_vdp) { vdp = _vdp;
 	const fireLimitPos = 960;
 	//const perso = new Perso(100, 128);
-	const perso = new Perso(1200, 600);
-	//const perso = new Perso(2460, 50);
+	//const perso = new Perso(1200, 600);
+	const perso = new Perso(2460, 50);
 	const fire = new Fire();
 	let subscene = 0;
 
-	vdp.configBackdropColor('#000');
 	map = new Map('level1');
 	frameNo = 0;
 
@@ -568,9 +603,7 @@ function *main(_vdp) { vdp = _vdp;
 			if (camera.x < fireLimitPos) shakeScreen();
 		}
 
-		const bgPos = camera.transform(0, 0);
-		vdp.drawBackgroundTilemap('level1-lo', { scrollX: -bgPos.x, scrollY: -bgPos.y, prio: 1 });
-		vdp.drawBackgroundTilemap('level1-hi', { scrollX: -bgPos.x, scrollY: -bgPos.y, prio: 13 });
+		drawBackgrounds();
 		perso.draw();
 		drawObjects(perso);
 
