@@ -5,6 +5,7 @@ const objectDefinitions = require('./level1.json');
 const TIMESTEP = 1 / 60;
 const GRAVITY = 0.3;
 const MAX_Z = 300;
+const PERSO_PRIORITY = 3;
 
 class Camera {
 	constructor() {
@@ -65,7 +66,7 @@ class Perso {
 		const persoTile = vdp.sprite('perso').tile(tileNo);
 		const shadowTile = vdp.sprite('shadow');
 		const pos = camera.transformWithoutShake(this.x, this.y);
-		const scaleFactor = (MAX_Z - this.z) / MAX_Z;
+		const scaleFactor = Math.min(1, (MAX_Z - this.z) / MAX_Z);
 		let jumpAltitude = this.z < 0 ? (this.z / 2) : (this.z / 4);
 		// To avoid falling over a solid lo-plane block (has lo-priority, so we have no way to put the character behind it)
 		if (this.falling && !map.listRolesAt(this.x, this.y + jumpAltitude).includes('void')) return;
@@ -242,7 +243,7 @@ class LiveObject {
 	get top() { return this.y; }
 	get bottom() { return this.y + this.height; }
 
-	objectPriority(perso) { return this.top <= perso.bottom ? 2 : 3; }
+	objectPriority(perso) { return this.top <= perso.bottom ? (PERSO_PRIORITY - 1) : PERSO_PRIORITY; }
 
 	update(perso) {}
 }
@@ -253,7 +254,7 @@ class CrackedTile extends LiveObject {
 		this.explosionAnimation = 0;
 	}
 
-	draw() {
+	draw(perso) {
 		const pos = camera.transform(this.x, this.y);
 
 		if (this.explosionAnimation < 3) {
@@ -262,13 +263,14 @@ class CrackedTile extends LiveObject {
 		}
 		else {
 			const animSpeed = 50;
+			const prio = PERSO_PRIORITY - (this.top + 36 <= perso.bottom ? 1 : 0);
 			const height = Math.min(192, (this.explosionAnimation - 3) * animSpeed);
 			const flameTop = vdp.sprite('flame').offsetted(0, 0, 32, 25);
 			const flameBody = vdp.sprite('flame').offsetted(0, 25, 32, 48 - 25);
 			const flameBodyHeight = Math.max(0, height - 25);
 			const width = 32 + Math.sin(this.explosionAnimation * 100) * 5;
-			vdp.drawObject(flameTop, pos.x - (width - 32) / 2, pos.y + 32 - height, {prio: 4, width, height: Math.min(25, height) });
-			vdp.drawObject(flameBody, pos.x - (width - 32) / 2, pos.y + 32 - flameBodyHeight, {prio: 4, width, height: flameBodyHeight });
+			vdp.drawObject(flameTop, pos.x - (width - 32) / 2, pos.y + 32 - height, {prio, width, height: Math.min(25, height) });
+			vdp.drawObject(flameBody, pos.x - (width - 32) / 2, pos.y + 32 - flameBodyHeight, {prio, width, height: flameBodyHeight });
 		}
 	}
 
@@ -529,7 +531,8 @@ let coroutines = new Coroutines();
 function *main(_vdp) { vdp = _vdp;
 	const fireLimitPos = 960;
 	//const perso = new Perso(100, 128);
-	const perso = new Perso(2460, 50);
+	const perso = new Perso(1200, 600);
+	//const perso = new Perso(2460, 50);
 	const fire = new Fire();
 	let subscene = 0;
 
