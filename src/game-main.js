@@ -265,8 +265,8 @@ class CrackedTile extends LiveObject {
 			const animSpeed = 50;
 			const prio = PERSO_PRIORITY - (this.top + 36 <= perso.bottom ? 1 : 0);
 			const height = Math.min(192, (this.explosionAnimation - 3) * animSpeed);
-			const flameTop = vdp.sprite('flame').offsetted(0, 0, 32, 25);
-			const flameBody = vdp.sprite('flame').offsetted(0, 25, 32, 48 - 25);
+			const flameTop = vdp.sprite('flame').offset(0, 0, 32, 25);
+			const flameBody = vdp.sprite('flame').offset(0, 25, 32, 48 - 25);
 			const flameBodyHeight = Math.max(0, height - 25);
 			const width = 32 + Math.sin(this.explosionAnimation * 100) * 5;
 			vdp.drawObject(flameTop, pos.x - (width - 32) / 2, pos.y + 32 - height, {prio, width, height: Math.min(25, height) });
@@ -347,11 +347,11 @@ class RockPillar extends LiveObject {
 			pos.y += Math.random() * 3 - 1;
 		}
 
-		const top = vdp.sprite('rock-pillar').offsetted(0, 0, 32, Math.min(32, this.visiblePart));
+		const top = vdp.sprite('rock-pillar').offset(0, 0, 32, Math.min(32, this.visiblePart));
 		const prio = this.objectPriority(perso);
 		vdp.drawObject(top, pos.x, pos.y, {prio});
 		if (this.visiblePart > 32) {
-			const pillar = vdp.sprite('rock-pillar').offsetted(0, 32, 32, this.visiblePart - 32);
+			const pillar = vdp.sprite('rock-pillar').offset(0, 32, 32, this.visiblePart - 32);
 			vdp.drawObject(pillar, pos.x, pos.y + 32, {prio});
 		}
 	}
@@ -491,7 +491,7 @@ function drawBackgrounds() {
 	vdp.drawBackgroundTilemap('level1-hi', { scrollX: -bgPos.x, scrollY: -bgPos.y, prio: 13, wrap: false });
 
 	// Draw mountains
-	const mountainTile = vdp.sprite('level1').tile(93).offsetted(0, 0, 48, 32);
+	const mountainTile = vdp.sprite('level1').tile(93).offset(0, 0, 48, 32);
 	const fineScroll = (-bgPos.x / 4) % 48;
 	for (let i = -fineScroll; i < 256; i += 48)
 		vdp.drawObject(mountainTile, i, mountainLimit - 32, { prio: 1 });
