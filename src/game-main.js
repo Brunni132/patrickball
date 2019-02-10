@@ -1,5 +1,6 @@
 import {startGame, VDP} from '../lib/vdp-lib';
 import {Coroutines} from "./utils";
+import {logo} from "./vdp-logo";
 const objectDefinitions = require('./level1.json');
 
 const TIMESTEP = 1 / 60;
@@ -556,6 +557,8 @@ let liveObjects = [];
 let coroutines = new Coroutines();
 
 function *main(_vdp) { vdp = _vdp;
+	yield *logo(_vdp);
+
 	const fireLimitPos = 960;
 	const perso = new Perso(100, 128);
 	//const perso = new Perso(1200, 600);
