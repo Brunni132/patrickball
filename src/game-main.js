@@ -35,15 +35,15 @@ class Camera {
 	}
 
 
-	get xFinal() { return this.x + this.shakeX; }
-	get yFinal() { return this.y + this.shakeY; }
+	get xFinal() { return Math.floor(this.x + this.shakeX); }
+	get yFinal() { return Math.floor(this.y + this.shakeY); }
 
 	transform(x, y) {
-		return { x: x - this.xFinal, y: y - this.yFinal };
+		return { x: Math.floor(x) - this.xFinal, y: Math.floor(y) - this.yFinal };
 	}
 
 	transformWithoutShake(x, y) {
-		return { x: x - this.x, y: y - this.y };
+		return { x: Math.floor(x) - Math.floor(this.x), y: Math.floor(y) - Math.floor(this.y) };
 	}
 }
 
@@ -449,9 +449,6 @@ function animateLevel() {
 		// Flame
 		[pal.array[4], pal.array[5], pal.array[6]] = [pal.array[5], pal.array[6], pal.array[4]];
 		vdp.writePalette('level1-objects', pal);
-
-		//let pal = vdp.readPalette('objects');
-		//vdp.writePalette('objects', pal);
 	}
 
 	if (frameNo % 16 === 1) {
@@ -484,8 +481,10 @@ function drawBackgrounds() {
 		const add = i % 4 === 2 ? 1 : 0;
 		colorSwap.setLine(i + 44, Math.min(15, i / 4 + add), firstBlankPalette + 1);
 	}
-	for (let i = mountainLimit; i < 256; i++)
-		colorSwap.setLine(i, Math.max(0, Math.min(15, (i - mountainLimit - 4) / 2)), firstBlankPalette + 2);
+	for (let i = 0; i < 256 - mountainLimit; i++) {
+		const add = i % 4 === 2 ? 1 : 0;
+		colorSwap.setLine(i + mountainLimit, Math.max(0, Math.min(15, (i - 4) / 4 + add)), firstBlankPalette + 2);
+	}
 	vdp.configColorSwap([colorSwap]);
 
 	vdp.drawBackgroundTilemap('level1-lo', { scrollX: -bgPos.x, scrollY: -bgPos.y, prio: 1, wrap: false });
