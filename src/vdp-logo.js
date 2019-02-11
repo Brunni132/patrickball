@@ -36,10 +36,8 @@ export function *logo(_vdp) {
 
 		const palette = vdp.palette('vdp-logo');
 		palette.y = 0;
-		vdp.drawBackgroundTilemap('vdp-logo', { wrap: false, scrollY: -80, scrollX: -50, lineTransform, palette });
-		if (intro >= 30) {
-			vdp.drawBackgroundTilemap('vdp-logo-2', {wrap: false, scrollY: -140, winY: 140, palette });
-		}
+		vdp.drawBackgroundTilemap('vdp-logo', { wrap: false, scrollY: -80, scrollX: -50, winH: 140, lineTransform, palette });
+		vdp.drawBackgroundTilemap('vdp-logo-2', {wrap: false, scrollY: -140, winY: 140, winH: Math.max(0, intro - 20), lineTransform, palette });
 		intro += 2;
 		yield;
 	}
