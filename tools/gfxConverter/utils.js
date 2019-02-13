@@ -17,6 +17,12 @@ function alignToUpperDivider(number, divider) {
 	return number + (divider - number % divider);
 }
 
+function clearObject(obj) {
+	for (const prop of Object.getOwnPropertyNames(obj)) {
+		delete obj[prop];
+	}
+}
+
 // min and max included
 function randomIntFromInterval(min,max) {
 	return Math.floor(Math.random()*(max-min+1)+min);

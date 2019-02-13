@@ -217,10 +217,10 @@ function tiledMap(name, fileNameBase, opts, cb) {
 }
 
 function _restart() {
-	conv = null;
 	currentPalette = null;
 	currentPaletteMultiple = null;
 	currentTileset = null;
+	conv = null;
 	paletteNamed = {};
 	spriteNamed = {};
 	tilesetNamed = {};
@@ -228,8 +228,12 @@ function _restart() {
 }
 
 module.exports = {
-	get global() {
-		return { conv, paletteNamed, spriteNamed, tilesetNamed, mapNamed }
+	global: {
+		getConverter: () => conv,
+		palette: name => paletteNamed[name],
+		sprite: name => spriteNamed[name],
+		tileset: name => tilesetNamed[name],
+		map: name => mapNamed[name]
 	},
 	addColors,
 	blank,

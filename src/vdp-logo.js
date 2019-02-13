@@ -29,7 +29,16 @@ export function *logo(_vdp) {
 	const logoMap = vdp.readMap('vdp-logo');
 	const lineTransform = new vdp.LineTransformationArray();
 
-	while (animation < 136) {
+	//function sizes() {
+	//	const map1 = vdp.map('vdp-logo');
+	//	const map2 = vdp.map('vdp-logo-2');
+	//	const sprite1 = vdp.sprite('vdp-logo');
+	//	const sprite2 = vdp.sprite('vdp-logo-2');
+	//	console.log(`TEMP size`, map1.w * map1.h * 2, map2.w * map2.h * 2, sprite1.w * sprite1.h / 2, sprite2.w * sprite2.h / 2);
+	//}
+	//sizes();
+
+	while (animation < 116) {
 		if (intro < 100) {
 			intro += 2;
 			for (let i = 0; i < lineTransform.length; i++) {
@@ -56,19 +65,19 @@ export function *logo(_vdp) {
 
 			offset -= 0.5;
 			animation += 1;
-			if (animation >= 120) {
-				vdp.configFade({ color: '#000', factor: (animation - 120) * 16 });
+			if (animation >= 100) {
+				vdp.configFade({ color: '#000', factor: (animation - 100) * 16 });
 			}
 		}
 
 		const palette = vdp.palette('vdp-logo');
 		palette.y = 0;
-		vdp.drawBackgroundTilemap('vdp-logo', { wrap: false, scrollY: -80, scrollX: -50, winH: 140, lineTransform, palette });
+		vdp.drawBackgroundTilemap('vdp-logo', { wrap: false, scrollY: -80, scrollX: -48, winH: 140, lineTransform, palette });
 		vdp.drawBackgroundTilemap('vdp-logo-2', {wrap: false, scrollY: -140, winY: 140, winH: Math.max(0, intro - 20), lineTransform, palette });
 		yield;
 	}
 
 	// Restore
 	vdp.writePaletteMemory(0, 0, 16, 8, vdp.readPaletteMemory(0, 0, 16, 8, vdp.CopySource.rom));
-	vdp.configFade({ color: '#000', factor: 0 });
+	//vdp.configFade({ color: '#000', factor: 0 });
 }
