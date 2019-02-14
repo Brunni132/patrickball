@@ -79,5 +79,5 @@ export function *logo(_vdp) {
 
 	// Restore
 	vdp.writePaletteMemory(0, 0, 16, 8, vdp.readPaletteMemory(0, 0, 16, 8, vdp.CopySource.rom));
-	//vdp.configFade({ color: '#000', factor: 0 });
+	vdp.configFade({ color: '#000', factor: 0 });
 }

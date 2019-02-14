@@ -483,8 +483,7 @@ function drawBackgrounds() {
 		colorSwap.setLine(i + 44, Math.min(15, i / 4 + add), firstBlankPalette + 1);
 	}
 	for (let i = 0; i < 256 - mountainLimit; i++) {
-		const add = i % 4 === 2 ? 1 : 0;
-		colorSwap.setLine(i + mountainLimit, Math.max(0, Math.min(15, (i - 4) / 4 + add)), firstBlankPalette + 2);
+		colorSwap.setLine(i + mountainLimit, Math.max(0, Math.min(15, (i - 4) / 2)), firstBlankPalette + 2);
 	}
 	vdp.configColorSwap([colorSwap]);
 
