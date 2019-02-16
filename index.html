@@ -34,6 +34,17 @@
 			image-rendering: pixelated;                 /* Awesome future-browsers       */
 			-ms-interpolation-mode: nearest-neighbor;   /* IE                            */
 		}
+
+        #my-infos {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            text-align: center;
+            color: #fff;
+            font-size: 30px;
+            font-family: Arial;
+        }
 	</style>
 </head>
 
@@ -41,6 +52,7 @@
     <div id="content">
         <canvas id="glCanvas" width="256" height="256" style="width: 512px; height: 512px;"></canvas>
     </div>
+    <!-- <div id="my-infos">16 bit fantasy console running in a web browser</div> -->
     <script src="build/game.bundle.js"></script>
 </body>
 </html>

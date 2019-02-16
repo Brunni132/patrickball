@@ -56,6 +56,13 @@ config({ compact: true, debug: true }, () => {
 	palette('blank2', () => {});
 	palette('blank3', () => {});
 
+	palette('title-screen', () => {
+		tiledMap('title-screen', 'title-screen', { tileWidth: 8, tileHeight: 8, tilesetWidth: 16, tilesetHeight: 32 });
+		tileset('title-barque', 'barque.png', 8, 8, { tilesetWidth: 16 }, () => {
+			map('title-barque', 'barque.png');
+		});
+	});
+
 	palette('level1', () => {
 		const tmx = readTmx('level1-new.tmx');
 		const til = tmx.readTileset('level1', global.palette('level1'), {tilesetWidth: 16});
@@ -70,6 +77,7 @@ config({ compact: true, debug: true }, () => {
 				'0-2;6-8;12-14;18-21;24-25;37;45;53;38-41;46-47;66-69;86-89;97-98;102-104', 'wall',
 				'108-113', 'fire|void|goleft',
 				'114-117', 'void|godown',
+				'124', 'godown'
 			]
 		};
 		fs.writeFileSync('../src/level1.json', JSON.stringify(objects));

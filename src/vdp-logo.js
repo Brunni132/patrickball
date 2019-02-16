@@ -39,6 +39,11 @@ export function *logo(_vdp) {
 	//sizes();
 
 	while (animation < 116) {
+		if (vdp.input.hasToggledDown(vdp.input.Key.Start) || vdp.input.hasToggledDown(vdp.input.Key.A)) {
+			yield;
+			break;
+		}
+
 		if (intro < 100) {
 			intro += 2;
 			for (let i = 0; i < lineTransform.length; i++) {

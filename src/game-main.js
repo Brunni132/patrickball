@@ -58,6 +58,7 @@ class Perso {
 		this.height = 12;
 		this.maxZ = 0;
 		this.direction = 0; // 0=down, 1=up, 2=right, 3=left
+		this.canControl = true;
 	}
 
 	draw() {
@@ -121,7 +122,7 @@ class Perso {
 		const targetVelocity = { x: 0, y: 0 };
 		const impulse = { x: 0, y: 0 };
 
-		if (this.animState !== 'hit') {
+		if (this.animState !== 'hit' && this.canControl) {
 			if (vdp.input.isDown(vdp.input.Key.Up)) { targetVelocity.y = -speed; this.direction = 1; }
 			if (vdp.input.isDown(vdp.input.Key.Down)) { targetVelocity.y = +speed; this.direction = 0; }
 			if (vdp.input.isDown(vdp.input.Key.Left)) { targetVelocity.x = -speed; this.direction = 3; }
@@ -243,6 +244,8 @@ class LiveObject {
 	get right() { return this.x + this.width; }
 	get top() { return this.y; }
 	get bottom() { return this.y + this.height; }
+	get centerX() { return this.x + this.width / 2; }
+	get centerY() { return this.y + this.height / 2; }
 
 	objectPriority(perso) { return this.top <= perso.bottom ? (PERSO_PRIORITY - 1) : PERSO_PRIORITY; }
 
@@ -374,7 +377,11 @@ class RockPillar extends LiveObject {
 class MineCart extends LiveObject {
 	constructor(objDef, props) {
 		super(objDef);
+		this.y += 8;
 		this.width = this.height = 32;
+		this.takingPerso = false;
+		this.direction = 'right';
+		this.rideSpeed = 3;
 	}
 
 	draw(perso) {
@@ -383,16 +390,21 @@ class MineCart extends LiveObject {
 	}
 
 	update(perso) {
-		//if (camera.isVisible(this)) {
-		//	if (this.visiblePart < 1) this.visiblePart += 0.05;
-		//	else this.visiblePart = Math.min(this.fullyOutside, this.visiblePart + 1);
-		//}
-		//
-		//this.y = this.spawnY - this.visiblePart + 32;
-		//const correspondingZ = this.visiblePart > 32 ? (96 - this.visiblePart) : 0;
-		//if (this.collidesWith(perso, {marginW: -8, marginH: 0, ignoreDepth: true}) && perso.z <= correspondingZ) {
-		//	perso.notifyGroundOnObject(this);
-		//}
+		if (!this.takingPerso && this.collidesWith(perso, { marginW: 0, marginH: 32, ignoreDepth: true})) {
+			this.takingPerso = true;
+			perso.canControl = false;
+		}
+
+		if (this.takingPerso) {
+			if (this.direction === 'right') {
+				this.x += this.rideSpeed;
+				if (map.listRolesAt(this.left, this.bottom).includes('godown')) this.direction = 'down';
+			}
+			else if (this.direction === 'down') this.y += this.rideSpeed;
+
+			perso.x = this.x + 14;
+			perso.y = this.y + 10;
+		}
 	}
 }
 
@@ -487,8 +499,18 @@ function drawBackgrounds() {
 	}
 	vdp.configColorSwap([colorSwap]);
 
+	const lineTransform = new vdp.LineTransformationArray();
+	const vScroll = -bgPos.y;
+	const transformArray = [-1, 0, 0, -1, -1, -1, 0, 0, 1, 1, 0, 0, 0, 0];
+	for (let i = 0; i < lineTransform.length; i++) {
+		const hScroll = transformArray[(i + frameNo + vScroll) % transformArray.length];
+		let mat = vdp.mat3.create();
+		vdp.mat3.translate(mat, mat, [hScroll, i + vScroll]);
+		lineTransform.setLine(i, mat);
+	}
+
 	vdp.drawBackgroundTilemap('level1-lo', { scrollX: -bgPos.x, scrollY: -bgPos.y, prio: 1, wrap: false });
-	vdp.drawBackgroundTilemap('level1-hi', { scrollX: -bgPos.x, scrollY: -bgPos.y, prio: 13, wrap: false });
+	vdp.drawBackgroundTilemap('level1-hi', { scrollX: -bgPos.x, prio: 13, wrap: false, lineTransform });
 
 	// Draw mountains
 	const mountainTile = vdp.sprite('level1').tile(93).offset(0, 0, 48, 32);
@@ -555,10 +577,53 @@ let map;
 let liveObjects = [];
 let coroutines = new Coroutines();
 
+function *titleScreen() {
+	const lineTransform = new vdp.LineTransformationArray();
+	let cloudProgress = 0;
+	let fade = 255, fadeDirection = -4;
+
+	vdp.configBackdropColor('#048');
+
+	while (fade < 256) {
+		if (vdp.input.hasToggledDown(vdp.input.Key.Start) || vdp.input.hasToggledDown(vdp.input.Key.A)) {
+			fadeDirection = 16;
+		}
+		cloudProgress++;
+		fade = Math.max(0, fade + fadeDirection);
+
+		for (let i = 0; i < vdp.screenHeight; i++) {
+			const vFactor = i / (vdp.screenHeight - 1);
+			const verticalScale = 1 - vFactor * 1.5;
+			const horizontalScale = 1 - vFactor * 1;
+			const mat = vdp.mat3.create();
+
+			let line = (cloudProgress + (i / verticalScale)) % 320;
+			if (line % 320 >= 160) line = 320 - line;
+
+			if (i < 128) {
+				vdp.mat3.translate(mat, mat, [128, 0]);
+				vdp.mat3.scale(mat, mat, [ 1 / horizontalScale, 1 ]);
+				vdp.mat3.translate(mat, mat, [-128, line]);
+			} else {
+				vdp.mat3.translate(mat, mat, [0, 161]);
+			}
+			lineTransform.setLine(i, mat);
+		}
+
+		vdp.configFade({color: '#008', factor: fade});
+		vdp.drawBackgroundTilemap('title-screen', {wrap: true, lineTransform});
+		vdp.drawBackgroundTilemap('title-barque', {});
+		yield;
+	}
+}
+
+
 function *main(_vdp) { vdp = _vdp;
 	yield *logo(_vdp);
+	yield *titleScreen();
 
 	const fireLimitPos = 960;
+	let fadeOut = 255;
 	const perso = new Perso(100, 128);
 	//const perso = new Perso(1200, 600);
 	//const perso = new Perso(2460, 50);
@@ -571,7 +636,7 @@ function *main(_vdp) { vdp = _vdp;
 	prepareBackgrounds();
 	prepareObjects();
 
-	while (true) {
+	while (fadeOut < 256) {
 		// Default config, may be overriden
 		vdp.configObjectTransparency({ op: 'add', blendDst: '#888', blendSrc: '#fff'});
 
@@ -583,6 +648,7 @@ function *main(_vdp) { vdp = _vdp;
 		coroutines.updateAll();
 
 		if (subscene === 0) {
+			fadeOut = Math.max(0, fadeOut - 16);
 			shakeScreen();
 			// Make the fire continously approach
 			if (fire.x - camera.x < -0) fire.x = camera.x - 0;
@@ -595,8 +661,16 @@ function *main(_vdp) { vdp = _vdp;
 			camera.minimumX = Math.min(fireLimitPos, camera.x + 1);
 			fire.x = Math.min(fire.x + 4, fireLimitPos - 35);
 			if (camera.x < fireLimitPos) shakeScreen();
+
+			if (perso.x >= 2600 && perso.y >= 800) {
+				subscene = 2;
+			}
+		}
+		else if (subscene === 2) {
+			fadeOut += 16;
 		}
 
+		vdp.configFade({color: '#008', factor: fadeOut});
 		drawBackgrounds();
 		perso.draw();
 		drawObjects(perso);
@@ -606,6 +680,8 @@ function *main(_vdp) { vdp = _vdp;
 		frameNo++;
 		yield;
 	}
+
+
 }
 
 startGame('#glCanvas', vdp => main(vdp));
