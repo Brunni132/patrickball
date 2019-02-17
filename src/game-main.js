@@ -580,7 +580,12 @@ let coroutines = new Coroutines();
 function *titleScreen() {
 	const lineTransform = new vdp.LineTransformationArray();
 	let cloudProgress = 0;
-	let fade = 255, fadeDirection = -4;
+	let fade = 255, fadeDirection = -4, frameNo = 0;
+
+	//const colorArray = new vdp.LineColorArray();
+	//for (let i = 0; i < colorArray.length; i++) {
+	//	if (i >= 160) colorArray.setAll()
+	//}
 
 	vdp.configBackdropColor('#048');
 
@@ -610,9 +615,13 @@ function *titleScreen() {
 			lineTransform.setLine(i, mat);
 		}
 
+		const offsetY = Math.sin(frameNo / 30) * 5;
+		frameNo++;
+
 		vdp.configFade({color: '#008', factor: fade});
 		vdp.drawBackgroundTilemap('title-screen', {wrap: true, lineTransform});
-		vdp.drawBackgroundTilemap('title-barque', {});
+		vdp.drawBackgroundTilemap('title-barque', { scrollY: offsetY });
+		vdp.drawObject(vdp.sprite('perso').tile(1), 154, 130 - offsetY, {width: 48, height: 48});
 		yield;
 	}
 }
